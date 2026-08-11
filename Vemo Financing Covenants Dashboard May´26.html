@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VEMO — Financing Covenants Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --deep:#1F5556;
+  --teal:#11ABAB;
+  --teal-soft:#5EBEBE;
+  --gray:#A6A6A6;
+  --light:#F7FAFA;       /* MUCHO más claro, casi blanco */
+  --white:#FFFFFF;
+  --ink:#0E2E2F;
+  --muted:#5A6E6F;       /* más oscuro y menos gris */
+  --faint:#D4E3E3;       /* tinte teal en lugar de puro gris */
+  --line:#DFEAEA;        /* borders con tinte teal */
+  --surface:#FFFFFF;     /* superficies puro blanco */
+  --soft-bg:#F0F7F7;     /* nuevo verde muy suave para alternativas */
+  --ok:#1F5556;
+  --ok-bg:#DEF0F0;       /* verde claro más visible */
+  --ok-bg-soft:#EDF7F7;
+  --warn:#C67A13;
+  --warn-bg:#FBF2E3;
+  --breach:#B84444;
+  --breach-bg:#FBECEC;
+  --waiver:#B8860B;          /* amber/dark gold */
+  --waiver-light:#E8B339;
+  --waiver-bg:#FFF8E1;       /* yellow background */
+  --waiver-bg-soft:#FFFBEC;
+  --na:#A6A6A6;
+  --na-bg:#F0F4F4;
+  --display:'Space Grotesk',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+
+html,body{background:var(--light);color:var(--ink);font-family:var(--display);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+
+.shell{max-width:1280px;margin:0 auto;padding:32px 28px 80px;}
+
+/* ============ MASTHEAD ============ */
+.masthead{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:20px;margin-bottom:28px;border-bottom:1px solid var(--line);}
+.mast-l .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--teal);font-weight:500;margin-bottom:6px;}
+.mast-l h1{font-weight:500;font-size:32px;letter-spacing:-1px;color:var(--deep);line-height:1.1;}
+.mast-l .sub{font-size:13.5px;color:var(--muted);margin-top:6px;font-weight:300;}
+.mast-r{text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted);}
+.mast-r .lbl{letter-spacing:1.5px;text-transform:uppercase;font-size:9.5px;color:var(--gray);display:block;margin-bottom:3px;}
+.mast-r .val{font-size:13px;color:var(--ink);font-weight:500;}
+.mast-r .stamp{display:inline-block;padding:4px 10px;background:var(--deep);color:var(--white);border-radius:2px;font-size:10px;letter-spacing:1.3px;margin-top:4px;}
+
+/* ============ KPI BAR ============ */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:32px;}
+.kpi{background:var(--white);padding:18px 20px;position:relative;}
+.kpi .k-lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.kpi .k-val{font-weight:500;font-size:28px;letter-spacing:-0.7px;color:var(--deep);line-height:1;}
+.kpi .k-sub{font-family:var(--mono);font-size:10.5px;color:var(--gray);margin-top:7px;}
+.kpi .k-accent{display:block;position:absolute;top:0;left:0;height:3px;width:100%;background:var(--teal);}
+.kpi.kpi-breach .k-val{color:var(--breach);}
+.kpi.kpi-breach .k-accent{background:var(--breach);}
+.kpi.kpi-waiver .k-val{color:var(--waiver);}
+.kpi.kpi-waiver .k-accent{background:var(--waiver-light);}
+
+/* ============ SECTION ============ */
+.section{margin-bottom:36px;}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:16px;cursor:pointer;user-select:none;transition:border-color .15s;}
+.sec-hdr:hover{border-bottom-color:var(--teal);}
+.sec-hdr.compact{margin-bottom:0;border-bottom-color:transparent;}
+.sec-l{display:flex;align-items:center;gap:14px;}
+.sec-toggle{font-family:var(--mono);font-size:11px;color:var(--gray);transition:transform .25s;}
+.sec-toggle.collapsed{transform:rotate(-90deg);}
+.sec-title{font-weight:500;font-size:19px;letter-spacing:-0.4px;color:var(--deep);}
+.sec-title .num{color:var(--teal);font-family:var(--mono);font-size:13px;margin-right:10px;font-weight:500;}
+.sec-meta{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:0.6px;}
+.sec-body{transition:max-height .35s ease, opacity .25s ease;overflow:hidden;}
+.sec-body.collapsed{max-height:0 !important;opacity:0;pointer-events:none;}
+
+/* ============ FACILITIES TABLE ============ */
+.fac-tbl{width:100%;background:var(--white);border:1px solid var(--line);border-collapse:separate;border-spacing:0;border-radius:4px;overflow:hidden;}
+.fac-tbl thead th{background:var(--light);padding:10px 14px;font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:500;border-bottom:1px solid var(--line);}
+.fac-tbl thead th.rt{text-align:right;}
+.fac-tbl tbody td{padding:13px 14px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle;}
+.fac-tbl tbody tr:last-child td{border-bottom:none;}
+.fac-tbl tbody tr:hover td{background:var(--surface);}
+.fac-tbl tbody td.rt{text-align:right;font-family:var(--mono);}
+.fac-tbl tfoot td{padding:13px 14px;background:var(--light);font-family:var(--mono);font-weight:500;font-size:13px;color:var(--deep);border-top:2px solid var(--deep);}
+.fac-tbl tfoot td.rt{text-align:right;}
+
+.fac-name{display:flex;align-items:center;gap:10px;}
+.fac-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.fac-label{font-weight:500;color:var(--deep);}
+.fac-ent{font-size:11px;color:var(--muted);font-weight:300;margin-top:1px;}
+.fac-rate{font-family:var(--mono);font-size:11.5px;color:var(--ink);}
+.util-bar{display:inline-block;width:74px;height:5px;background:var(--line);border-radius:2px;overflow:hidden;vertical-align:middle;margin-right:7px;}
+.util-fill{display:block;height:100%;background:var(--teal);}
+.util-pct{font-family:var(--mono);font-size:11px;color:var(--muted);vertical-align:middle;}
+.badge-cov{display:inline-block;font-family:var(--mono);font-size:8.5px;letter-spacing:0.7px;padding:3px 8px;border-radius:2px;background:var(--ok-bg);color:var(--deep);font-weight:600;white-space:nowrap;}
+.badge-nocov{display:inline-block;font-family:var(--mono);font-size:8.5px;letter-spacing:0.7px;padding:3px 8px;border-radius:2px;background:var(--na-bg);color:var(--gray);font-weight:500;white-space:nowrap;}
+
+/* Business section dividers — collapsible */
+.fac-tbl tr.biz-section-header td{background:linear-gradient(to right, var(--ok-bg), var(--ok-bg-soft) 50%, var(--white));padding:14px 18px;border-bottom:1.5px solid var(--teal);border-top:1px solid var(--line);cursor:pointer;user-select:none;}
+.fac-tbl tr.biz-section-header:first-child td{border-top:none;}
+.fac-tbl tr.biz-section-header:hover td{background:linear-gradient(to right, var(--ok-bg), var(--ok-bg) 50%, var(--ok-bg-soft));}
+
+.biz-hdr-content{display:flex;align-items:center;justify-content:space-between;gap:24px;}
+.biz-hdr-l{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.biz-toggle{font-family:var(--mono);font-size:11px;color:var(--teal);transition:transform .2s;width:14px;display:inline-block;font-weight:700;}
+.biz-hdr-title{font-family:var(--display);font-size:15px;letter-spacing:0.3px;color:var(--deep);font-weight:600;text-transform:uppercase;}
+.biz-hdr-count{font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+.biz-hdr-r{display:flex;align-items:center;gap:24px;flex-shrink:0;}
+.biz-stat{display:flex;flex-direction:column;align-items:flex-end;}
+.biz-stat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:500;}
+.biz-stat-val{font-family:var(--mono);font-size:13px;color:var(--deep);font-weight:600;margin-top:1px;}
+
+/* USD footer row */
+.fac-tbl tfoot tr.usd-footer td{background:var(--warn-bg);border-top:1px dashed var(--warn);padding:11px 14px;font-family:var(--mono);}
+
+/* ============ LENDER TABS ============ */
+.lender-tabs{display:flex;gap:0;background:var(--white);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:18px;flex-wrap:wrap;}
+.lt-tab{flex:1;min-width:120px;background:var(--white);border:none;padding:14px 16px;cursor:pointer;font-family:var(--display);font-size:13px;font-weight:500;color:var(--muted);text-align:left;border-right:1px solid var(--line);transition:all .15s;position:relative;}
+.lt-tab:last-child{border-right:none;}
+.lt-tab:hover{background:var(--surface);color:var(--deep);}
+.lt-tab.active{background:var(--deep);color:var(--white);}
+.lt-tab.active .lt-meta{color:rgba(255,255,255,0.65);}
+.lt-tab-l{display:block;font-weight:500;letter-spacing:-0.2px;font-size:13px;}
+.lt-meta{display:block;font-family:var(--mono);font-size:9.5px;color:var(--muted);margin-top:3px;letter-spacing:0.5px;}
+.lt-status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+.lt-tab.active .lt-status-dot.ok{background:var(--white);}
+.lt-status-dot.ok{background:var(--teal);}
+.lt-status-dot.no{background:var(--breach);}
+.lt-status-dot.na{background:var(--gray);}
+
+/* ============ LENDER VIEW ============ */
+.lender-view{display:none;}
+.lender-view.active{display:block;}
+
+/* ============ SUMMARY (TAB 1) ============ */
+.sum-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:0;}
+
+.sum-card{background:var(--white);border:1px solid var(--line);border-radius:4px;overflow:hidden;}
+.sum-card-hdr{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;transition:background .15s;}
+.sum-card-hdr:hover{background:var(--surface);}
+.sum-card-bar{width:3px;height:30px;border-radius:2px;flex-shrink:0;}
+.sum-card-title{font-weight:500;font-size:15px;color:var(--deep);}
+.sum-card-meta{font-size:10.5px;color:var(--muted);font-family:var(--mono);margin-top:1px;}
+.sum-card-stats{margin-left:auto;display:flex;gap:6px;align-items:center;font-family:var(--mono);font-size:10px;}
+.stat-pill{padding:2px 7px;border-radius:2px;font-weight:500;letter-spacing:0.5px;}
+.stat-pill.ok{background:var(--ok-bg);color:var(--deep);}
+.stat-pill.no{background:var(--breach-bg);color:var(--breach);}
+.stat-pill.waiver{background:var(--waiver-bg);color:var(--waiver);border:1px solid var(--waiver-light);}
+.stat-pill.na{background:var(--na-bg);color:var(--gray);}
+.sum-card-toggle{font-family:var(--mono);font-size:11px;color:var(--gray);transition:transform .2s;margin-left:8px;}
+.sum-card.collapsed .sum-card-toggle{transform:rotate(-90deg);}
+
+.sum-card-body{padding:0;transition:max-height .3s ease;overflow:hidden;max-height:1500px;}
+.sum-card.collapsed .sum-card-body{max-height:0;}
+
+.sum-tbl{width:100%;border-collapse:collapse;}
+.sum-tbl td{padding:10px 18px;border-bottom:1px solid var(--line);font-size:12.5px;}
+.sum-tbl tr:last-child td{border-bottom:none;}
+.sum-row-name{font-weight:500;color:var(--deep);}
+.sum-row-cond{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;}
+.sum-row-val{font-family:var(--mono);font-size:13px;font-weight:500;text-align:right;}
+.sum-row-val.ok{color:var(--deep);}
+.sum-row-val.no{color:var(--breach);}
+.sum-row-val.waiver{color:var(--waiver);}
+.sum-row-val.na{color:var(--gray);}
+
+.spark-mini{display:inline-block;vertical-align:middle;}
+
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+.status-dot.ok{background:var(--teal);}
+.status-dot.no{background:var(--breach);}
+.status-dot.waiver{background:var(--waiver-light);}
+.status-dot.na{background:var(--gray);}
+
+/* ============ LENDER DETAIL ============ */
+.detail-hdr{background:var(--white);border:1px solid var(--line);border-radius:4px;padding:18px 22px;margin-bottom:18px;display:flex;align-items:center;gap:16px;}
+.detail-hdr-bar{width:4px;height:36px;border-radius:2px;flex-shrink:0;}
+.detail-hdr-title{font-size:18px;font-weight:500;color:var(--deep);letter-spacing:-0.3px;}
+.detail-hdr-sub{font-size:11.5px;color:var(--muted);font-family:var(--mono);margin-top:2px;}
+.detail-hdr-stats{margin-left:auto;display:flex;gap:8px;align-items:center;}
+
+.cov-list{display:flex;flex-direction:column;gap:10px;}
+
+.cov-item{background:var(--white);border:1px solid var(--line);border-radius:4px;overflow:hidden;cursor:pointer;transition:all .15s;}
+.cov-item:hover{border-color:var(--teal);}
+.cov-item-row{padding:14px 18px;display:flex;align-items:center;gap:14px;}
+.cov-item-bar{width:3px;height:32px;border-radius:2px;flex-shrink:0;background:var(--line);}
+.cov-item.ok .cov-item-bar{background:var(--teal);}
+.cov-item.no .cov-item-bar{background:var(--breach);}
+.cov-item.waiver .cov-item-bar{background:var(--waiver-light);}
+.cov-item.na .cov-item-bar{background:var(--gray);}
+
+.cov-item-main{flex:1;}
+.cov-item-name{font-weight:500;font-size:14px;color:var(--deep);}
+.cov-item-formula{font-size:10.5px;color:var(--muted);margin-top:2px;font-family:var(--mono);letter-spacing:0.2px;}
+
+.cov-item-current{display:flex;align-items:center;gap:14px;}
+.cov-item-spark{flex-shrink:0;}
+.cov-item-cond{font-family:var(--mono);font-size:10px;color:var(--teal);padding:2px 8px;background:var(--ok-bg);border-radius:2px;letter-spacing:0.6px;white-space:nowrap;}
+.cov-item-val{font-family:var(--mono);font-size:15px;font-weight:500;min-width:90px;text-align:right;}
+.cov-item-val.ok{color:var(--deep);}
+.cov-item-val.no{color:var(--breach);}
+.cov-item-val.waiver{color:var(--waiver);}
+.cov-item-val.na{color:var(--gray);}
+.cov-item-arrow{color:var(--gray);font-family:var(--mono);font-size:14px;}
+
+/* ============ MODAL ============ */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(14,46,47,0.5);display:none;align-items:flex-start;justify-content:center;padding:40px 20px;z-index:1000;backdrop-filter:blur(2px);overflow-y:auto;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--white);border-radius:6px;max-width:1100px;width:100%;box-shadow:0 20px 60px rgba(14,46,47,0.18);overflow:hidden;animation:modalIn .25s ease-out;}
+@keyframes modalIn{from{opacity:0;transform:translateY(-12px);}to{opacity:1;transform:none;}}
+
+.modal-hdr{padding:20px 26px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;}
+.modal-hdr-bar{width:4px;height:36px;border-radius:2px;flex-shrink:0;}
+.modal-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--teal);}
+.modal-title{font-size:20px;font-weight:500;color:var(--deep);letter-spacing:-0.4px;margin-top:2px;}
+.modal-formula{font-size:11.5px;color:var(--muted);font-family:var(--mono);margin-top:4px;}
+.modal-cond{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--teal);padding:4px 12px;background:var(--ok-bg);border-radius:3px;letter-spacing:0.8px;flex-shrink:0;}
+.modal-close{background:transparent;border:1px solid var(--line);width:32px;height:32px;border-radius:50%;cursor:pointer;color:var(--muted);font-size:16px;font-family:var(--display);transition:all .15s;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.modal-close:hover{border-color:var(--breach);color:var(--breach);}
+
+.modal-body{padding:24px 26px;max-height:calc(100vh - 200px);overflow-y:auto;}
+
+/* Modal chart */
+.chart-wrap{background:var(--white);border:1px solid var(--line);border-radius:6px;padding:28px 32px 22px;margin-bottom:24px;box-shadow:0 2px 8px rgba(31,85,86,0.04);}
+.chart-svg{width:100%;display:block;}
+
+.chart-controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line);}
+.chart-controls-l{font-family:var(--mono);font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);}
+.range-toggle{display:inline-flex;background:var(--soft-bg);border:1px solid var(--line);border-radius:4px;overflow:hidden;}
+.range-btn{background:transparent;border:none;padding:6px 14px;cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--muted);font-weight:500;border-right:1px solid var(--line);transition:all .15s;}
+.range-btn:last-child{border-right:none;}
+.range-btn:hover{color:var(--deep);background:var(--ok-bg-soft);}
+.range-btn.active{background:var(--deep);color:var(--white);}
+
+.chart-summary{display:flex;gap:24px;margin-bottom:18px;padding:18px 24px;background:var(--ok-bg-soft);border:1px solid var(--line);border-radius:4px;}
+.chart-stat{flex:1;}
+.chart-stat-lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--deep);margin-bottom:5px;font-weight:600;}
+.chart-stat-val{font-size:19px;font-weight:600;color:var(--deep);font-family:var(--mono);}
+.chart-stat-val.no{color:var(--breach);}
+.chart-stat-val.waiver{color:var(--waiver);}
+.chart-stat-val.na{color:var(--gray);}
+
+/* Waiver badge — sits next to covenant name to indicate waiver active */
+.waiver-badge{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:1px;font-weight:600;padding:2px 7px;border-radius:2px;background:var(--waiver-bg);color:var(--waiver);border:1px solid var(--waiver-light);margin-left:8px;text-transform:uppercase;vertical-align:middle;}
+
+/* Lender tab dot waiver */
+.lt-status-dot.waiver{background:var(--waiver-light);}
+.lt-tab.active .lt-status-dot.waiver{background:var(--waiver-light);}
+
+/* Modal note style for waiver */
+.modal-note.waiver{background:var(--waiver-bg);border-left-color:var(--waiver-light);color:var(--ink);}
+
+/* Detail breakdown blocks */
+.bk-block{margin-bottom:18px;}
+.bk-block-ttl{font-family:var(--mono);font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--deep);margin-bottom:8px;font-weight:600;}
+.bk-tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--white);}
+.bk-tbl{width:100%;border-collapse:collapse;font-family:var(--mono);background:var(--white);}
+.bk-tbl th,.bk-tbl td{padding:9px 12px;font-size:11px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;}
+.bk-tbl th{background:var(--ok-bg-soft);font-weight:600;color:var(--deep);letter-spacing:0.6px;text-transform:uppercase;font-size:9.5px;}
+.bk-tbl th:first-child,.bk-tbl td:first-child{text-align:left;position:sticky;left:0;background:var(--white);border-right:1px solid var(--line);min-width:240px;max-width:280px;font-weight:400;color:var(--ink);}
+.bk-tbl thead th:first-child{background:var(--ok-bg-soft);}
+.bk-tbl .sign{display:inline-block;width:14px;font-weight:700;color:var(--teal);}
+.bk-tbl .sign.neg{color:var(--breach);}
+.bk-tbl tr.subtotal td{font-weight:600;border-top:1.5px solid var(--teal);background:var(--ok-bg-soft);color:var(--deep);}
+.bk-tbl tr.subtotal td:first-child{background:var(--ok-bg-soft);color:var(--deep);}
+.bk-tbl tr.result td{font-weight:700;background:var(--ok-bg);color:var(--deep);border-top:2px solid var(--deep);font-size:11.5px;}
+.bk-tbl tr.result td:first-child{background:var(--ok-bg);}
+.bk-tbl tr.result.no td{background:var(--breach-bg);color:var(--breach);}
+.bk-tbl tr.result.no td:first-child{background:var(--breach-bg);}
+.bk-tbl tr.result.waiver td{background:var(--waiver-bg);color:var(--waiver);border-top:2px solid var(--waiver-light);}
+.bk-tbl tr.result.waiver td:first-child{background:var(--waiver-bg);}
+
+.modal-note{background:var(--warn-bg);border-left:3px solid var(--warn);padding:10px 14px;font-size:12px;color:var(--ink);margin-bottom:18px;border-radius:0 2px 2px 0;line-height:1.5;}
+.modal-note.info{background:var(--ok-bg);border-left-color:var(--teal);}
+
+/* ============ FOOTER ============ */
+.footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--gray);letter-spacing:0.6px;}
+
+/* ============ CONFIDENTIAL ============ */
+.conf-inline{display:inline-block;margin-top:8px;font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--gray);background:var(--soft-bg);border:1px solid var(--line);padding:3px 9px;border-radius:2px;text-transform:uppercase;font-weight:500;}
+.conf-footer{margin-top:14px;padding:8px 16px;background:var(--soft-bg);border:1px solid var(--line);border-radius:3px;text-align:center;font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;color:var(--muted);font-weight:500;text-transform:uppercase;}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width:900px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .kpi-grid .kpi:nth-child(5){grid-column:span 2;}
+  .mast-l h1{font-size:24px;}
+  .sum-grid{grid-template-columns:1fr;}
+  .lender-tabs{flex-direction:column;}
+  .lt-tab{border-right:none;border-bottom:1px solid var(--line);}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- MASTHEAD -->
+<div class="masthead">
+  <div class="mast-l">
+    <div class="eyebrow">VEMO · Financing covenants monitor</div>
+    <h1>Financing Covenants Dashboard</h1>
+    <div class="sub">Consolidated view of credit facilities and financial covenant compliance</div>
+    <div class="conf-inline">Strictly Confidential · Internal Use Only · Do Not Distribute</div>
+  </div>
+  <div class="mast-r">
+    <span class="lbl">Reporting Date</span>
+    <span class="val">31 May 2026</span><br>
+    <span style="font-family:var(--mono);font-size:9.5px;color:var(--gray);letter-spacing:0.5px;">PROMECAP May · others at Mar-26</span>
+  </div>
+</div>
+
+<!-- KPI BAR -->
+<div class="kpi-grid" id="kpi-grid"></div>
+
+<!-- SECTION 1: FACILITIES -->
+<div class="section">
+  <div class="sec-hdr" onclick="toggleSec('facilities')">
+    <div class="sec-l">
+      <span class="sec-toggle" id="tog-facilities">▼</span>
+      <div class="sec-title"><span class="num">01</span>Credit Facilities</div>
+    </div>
+    <div class="sec-meta">MXN balances at May-26 · covenants at May-26 (PROMECAP) / Mar-26 (others)</div>
+  </div>
+  <div class="sec-body" id="body-facilities">
+    <table class="fac-tbl" id="fac-tbl"></table>
+  </div>
+</div>
+
+<!-- SECTION 2: COVENANTS -->
+<div class="section">
+  <div class="sec-hdr" onclick="toggleSec('covenants')">
+    <div class="sec-l">
+      <span class="sec-toggle" id="tog-covenants">▼</span>
+      <div class="sec-title"><span class="num">02</span>Financial Covenant Compliance</div>
+    </div>
+    <div class="sec-meta" id="cov-meta">Click any covenant for breakdown</div>
+  </div>
+  <div class="sec-body" id="body-covenants">
+    <!-- Lender tabs -->
+    <div class="lender-tabs" id="lender-tabs"></div>
+    <!-- Views (one per lender + summary) -->
+    <div id="lender-views"></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div>VEMO · covenant compliance monitoring</div>
+  <div>Data as of Mar-26 reporting cycle</div>
+</div>
+
+<div class="conf-footer">Strictly Confidential · This document contains proprietary information · Not for external distribution</div>
+
+</div>
+<!-- /shell -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalIfOverlay(event)">
+  <div class="modal" id="modal" onclick="event.stopPropagation()">
+    <div class="modal-hdr">
+      <div class="modal-hdr-bar" id="modal-bar"></div>
+      <div style="flex:1">
+        <div class="modal-eyebrow" id="modal-eyebrow"></div>
+        <div class="modal-title"><span id="modal-title"></span><span id="modal-title-badge"></span></div>
+        <div class="modal-formula" id="modal-formula"></div>
+      </div>
+      <div class="modal-cond" id="modal-cond"></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+
+// ============ DATA INJECTION ============
+// (placeholder — will be replaced by actual data)
+const DATA = {"covenants": {"Covalto": {"Apalancamiento": {"condition": "<=4.5x", "threshold": 4.5, "direction": "less", "format": "x", "desc": "Liabilities / Equity", "series": [{"date": "2024-12", "value": 2.057521320971721}, {"date": "2025-03", "value": 1.9710306936439286}, {"date": "2025-06", "value": 2.7370903902600965}, {"date": "2025-09", "value": 1.896958461296849}, {"date": "2025-12", "value": 1.0588115458668408}, {"date": "2026-03", "value": 1.0344808573271211}]}, "Morosidad": {"condition": "<=5%", "threshold": 0.05, "direction": "less", "format": "pct", "desc": "Past Due Portfolio / Total Portfolio", "series": [{"date": "2024-12", "value": 0.027740982260015618}, {"date": "2025-03", "value": 0.010750770535848705}, {"date": "2025-06", "value": 0.015511227018002853}, {"date": "2025-09", "value": 0.026410457855921356}, {"date": "2025-12", "value": 0.03523874197173306}, {"date": "2026-03", "value": 0.03873712362290017}]}, "Cobertura": {"condition": ">=45%", "threshold": 0.45, "direction": "greater", "format": "pct", "desc": "LLR / Past Due Portfolio", "series": [{"date": "2024-12", "value": 1.401937260843938}, {"date": "2025-03", "value": 2.247033097343145}, {"date": "2025-06", "value": 1.6381579931098997}, {"date": "2025-09", "value": 1.183191788538263}, {"date": "2025-12", "value": 0.8899188134260071}, {"date": "2026-03", "value": 1.1047154114679967}]}, "Capitalización": {"condition": ">=20%", "threshold": 0.2, "direction": "greater", "format": "pct", "desc": "Equity / Total Assets", "series": [{"date": "2024-12", "value": 0.3258813315905384}, {"date": "2025-03", "value": 0.31930662904740553}, {"date": "2025-06", "value": 0.26758785460642853}, {"date": "2025-09", "value": 0.34518962331007713}, {"date": "2025-12", "value": 0.4857171128690949}, {"date": "2026-03", "value": 0.4915258830789923}]}, "Rentabilidad": {"condition": ">$0", "threshold": 0, "direction": "greater", "format": "mxn", "desc": "NI Ex. One-offs", "series": [{"date": "2024-12", "value": 29758145.08}, {"date": "2025-03", "value": 13771463.0}, {"date": "2025-06", "value": 20481989.0}, {"date": "2025-09", "value": 34445989.12000002}, {"date": "2025-12", "value": 21729800.390000015}, {"date": "2026-03", "value": -14200000}]}, "Cob. Intereses": {"condition": ">1.5x", "threshold": 1.5, "direction": "greater", "format": "x", "desc": "(Int.Income + OOR) / Int.Expense", "series": [{"date": "2024-12", "value": 4.478613513085731}, {"date": "2025-03", "value": 3.0907290637996394}, {"date": "2025-06", "value": 3.117280938010312}, {"date": "2025-09", "value": 3.2127803866838054}, {"date": "2025-12", "value": 3.771344886894612}, {"date": "2026-03", "value": 4.24177759933506}]}, "Aforo": {"condition": ">1.2x", "threshold": 1.2, "direction": "greater", "format": "x", "desc": "Collateral Ratio", "series": [{"date": "2024-12", "value": 1.2332615236565223}, {"date": "2025-03", "value": 1.30457352443217}, {"date": "2025-06", "value": 1.3341}, {"date": "2025-09", "value": 1.3896223557321468}, {"date": "2025-12", "value": 1.37253926533876}, {"date": "2026-03", "value": 1.3139}]}}, "BEEL LTO": {"Deuda/Capital": {"condition": "<=4x", "threshold": 4.0, "direction": "less", "format": "x", "desc": "Debt / Equity", "series": [{"date": "2024-12", "value": 1.437450370897776}, {"date": "2025-03", "value": 1.5774322970839643}, {"date": "2025-06", "value": 1.7586911266123741}, {"date": "2025-09", "value": 0.9289146976762894}, {"date": "2025-12", "value": 0.7068054935069867}, {"date": "2026-03", "value": 0.6500487762535635}]}, "Deuda/Activos": {"condition": "<=80%", "threshold": 0.8, "direction": "less", "format": "pct", "desc": "Debt / Total Assets", "series": [{"date": "2024-12", "value": 0.4684382409634805}, {"date": "2025-03", "value": 0.5036845893323862}, {"date": "2025-06", "value": 0.47100016692531677}, {"date": "2025-09", "value": 0.3206517145780725}, {"date": "2025-12", "value": 0.3433075236662294}, {"date": "2026-03", "value": 0.3195157987924511}]}, "Capital Contable": {"condition": ">120 MXNm", "threshold": 120000000.0, "direction": "greater", "format": "mxn", "desc": "Shareholders Equity", "series": [{"date": "2024-12", "value": 293546112.0}, {"date": "2025-03", "value": 309787949.0}, {"date": "2025-06", "value": 314711846.0}, {"date": "2025-09", "value": 557861157.0}, {"date": "2025-12", "value": 905717461.0}, {"date": "2026-03", "value": 979405428.05}]}, "Cartera Vencida": {"condition": "<5%", "threshold": 0.05, "direction": "less", "format": "pct", "desc": "Past Due / Total Portfolio", "series": [{"date": "2024-12", "value": 0.016192226212453132}, {"date": "2025-03", "value": 0.010750770535848705}, {"date": "2025-06", "value": 0.015506181151415695}, {"date": "2025-09", "value": 0.026410457855921356}, {"date": "2025-12", "value": 0.03523874197173306}, {"date": "2026-03", "value": 0.03873712362290017}]}, "Aforo": {"condition": ">=1.25x", "threshold": 1.25, "direction": "greater", "format": "x", "desc": "Collateral Ratio", "series": [{"date": "2024-12", "value": 1.5}, {"date": "2025-03", "value": 1.2810695748385328}, {"date": "2025-06", "value": 1.3766}, {"date": "2025-09", "value": 1.3531491637268303}, {"date": "2025-12", "value": 1.261411381011944}, {"date": "2026-03", "value": 1.3916889595711481}]}}, "BEEL Green": {"DSCR": {"condition": ">=1.10x", "threshold": 1.1, "direction": "greater", "format": "x", "desc": "(Available Cash Flow / Debt Service) — quarterly", "series": [{"date": "2023-12", "value": 1.184579934159332}, {"date": "2024-03", "value": 1.1266129723558196}, {"date": "2024-06", "value": 1.121009827655151}, {"date": "2024-09", "value": 1.1257275422661897}, {"date": "2024-12", "value": 1.1431532072719495}, {"date": "2025-03", "value": 1.1246014814817196}, {"date": "2025-06", "value": 1.1166500605762353}, {"date": "2025-09", "value": 1.1290682204786335}, {"date": "2025-12", "value": 1.1211278163131118}, {"date": "2026-03", "value": 1.1474489754121666}]}}, "BEEL VCN": {"Apalancamiento": {"condition": "<=75%", "threshold": 0.75, "direction": "less", "format": "pct", "desc": "Leverage Ratio", "series": [{"date": "2025-06", "value": 0.19835735983903613}, {"date": "2025-09", "value": 0.21834533916159476}, {"date": "2025-12", "value": 0.1294821395198692}, {"date": "2026-03", "value": 0.1118}]}, "DSCR": {"condition": ">=1.50x", "threshold": 1.5, "direction": "greater", "format": "x", "desc": "Debt Service Coverage Ratio (Periodo Implementación: n/a)", "series": [{"date": "2025-06", "value": 0.0}, {"date": "2025-09", "value": 0.0}, {"date": "2025-12", "value": 0.0}, {"date": "2026-03", "value": 0}]}, "RCVB": {"condition": ">=1.30x", "threshold": 1.3, "direction": "greater", "format": "x", "desc": "Razón Cobertura Vigencia Crédito BEEL", "series": [{"date": "2025-06", "value": 8.423819884434783}, {"date": "2025-09", "value": 8.642704835766104}, {"date": "2025-12", "value": 9.71707295652174}, {"date": "2026-03", "value": 11.5117}]}, "RCVMCN": {"condition": ">=1.30x", "threshold": 1.3, "direction": "greater", "format": "x", "desc": "Razón Cobertura Vigencia Crédito MCN", "series": [{"date": "2025-06", "value": 8.423819884434783}, {"date": "2025-09", "value": 8.642704835766104}, {"date": "2025-12", "value": 9.71707295652174}, {"date": "2026-03", "value": 11.5117}]}, "SPI": {"condition": ">=0.8", "threshold": 0.8, "direction": "greater", "format": "x", "desc": "Schedule Performance Index", "series": [{"date": "2025-06", "value": 0.9898415278342138}, {"date": "2025-09", "value": 1.0}, {"date": "2025-12", "value": 1.0}, {"date": "2026-03", "value": 1.0}]}, "Hubs B2C": {"condition": "<=22.5%", "threshold": 0.225, "direction": "less", "format": "pct", "desc": "% Hubs B2C vs Portafolio BEEL", "series": [{"date": "2025-06", "value": 0.214}, {"date": "2025-09", "value": 0.214}, {"date": "2025-12", "value": 0.214}, {"date": "2026-03", "value": 0.214}]}}, "PROMECAP": {"Aforo": {"condition": ">=1.2x", "threshold": 1.2, "direction": "greater", "format": "x", "desc": "Coverage Ratio — Anexo 9", "series": [{"date": "2025-02", "value": 1.3726705733333335}, {"date": "2025-03", "value": 1.3615096286666668}, {"date": "2025-04", "value": 1.3239761397034595}, {"date": "2025-05", "value": 1.299618441862039}, {"date": "2025-06", "value": 1.4427775221864876}, {"date": "2025-07", "value": 1.3124801460130793}, {"date": "2025-08", "value": 1.2560119387385411}, {"date": "2025-09", "value": 1.3263925682928626}, {"date": "2025-10", "value": 1.2695690634885388}, {"date": "2025-11", "value": 1.2131180121353824}, {"date": "2025-12", "value": 1.2312862606138213}, {"date": "2026-01", "value": 1.2057400268847152}, {"date": "2026-02", "value": 1.2787840502967687}, {"date": "2026-03", "value": 1.4302413002799585}, {"date": "2026-04", "value": 1.2838938070510717}, {"date": "2026-05", "value": 1.2518272809024542}]}, "Morosidad Total": {"condition": "<=6%", "threshold": 0.06, "direction": "less", "format": "pct", "desc": "Past Due Portfolio — Anexo 10", "series": [{"date": "2025-01", "value": 0.036162333986140195}, {"date": "2025-02", "value": 0.037033585086756554}, {"date": "2025-03", "value": 0.029718553293462843}, {"date": "2025-04", "value": 0.02740282535631889}, {"date": "2025-05", "value": 0.03085559962396949}, {"date": "2025-06", "value": 0.035816552778522304}, {"date": "2025-07", "value": 0.035066686248184556}, {"date": "2025-08", "value": 0.04068509455682025}, {"date": "2025-09", "value": 0.042392414946351334}, {"date": "2025-10", "value": 0.05128146252455284}, {"date": "2025-11", "value": 0.0457709609996109}, {"date": "2025-12", "value": 0.049709477781559326}, {"date": "2026-01", "value": 0.038753473016213374}, {"date": "2026-02", "value": 0.04679401335980495}, {"date": "2026-03", "value": 0.04656444955366122}, {"date": "2026-04", "value": 0.05502915905780392}, {"date": "2026-05", "value": 0.07133060179607861}]}, "Morosidad Pledged": {"condition": "<=6%", "threshold": 0.06, "direction": "less", "format": "pct", "desc": "Pledged Past Due — Anexo 10", "series": [{"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 0.006409114839005166}, {"date": "2025-09", "value": 0.012061141890092462}, {"date": "2025-10", "value": 0.028144548828754418}, {"date": "2025-11", "value": 0.027306313101892552}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 0.002025285058915828}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 0.01885480813783262}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 0.02592213521536015}]}, "Apalancamiento": {"condition": "<=85%", "threshold": 0.85, "direction": "less", "format": "pct", "desc": "Leverage Ratio — Anexo 11", "series": [{"date": "2025-01", "value": 0.6372600080325247}, {"date": "2025-02", "value": 0.6036103949575135}, {"date": "2025-03", "value": 0.6085022185996056}, {"date": "2025-04", "value": 0.6586517689012616}, {"date": "2025-05", "value": 0.6960541358168191}, {"date": "2025-06", "value": 0.6915062163529153}, {"date": "2025-07", "value": 0.7643164564508713}, {"date": "2025-08", "value": 0.4961048957397145}, {"date": "2025-09", "value": 0.5393902292888763}, {"date": "2025-10", "value": 0.5450156917444129}, {"date": "2025-11", "value": 0.5085174438727524}, {"date": "2025-12", "value": 0.5667198682499724}, {"date": "2026-01", "value": 0.6684129272923667}, {"date": "2026-02", "value": 0.6233353079159976}, {"date": "2026-03", "value": 0.5913221036796359}, {"date": "2026-04", "value": 0.5696779199408525}, {"date": "2026-05", "value": 0.5269913699924671}]}, "Capitalización": {"condition": ">=20%", "threshold": 0.2, "direction": "greater", "format": "pct", "desc": "Capitalization Ratio — Anexo 12", "series": [{"date": "2025-01", "value": 0.3350064668027683}, {"date": "2025-02", "value": 0.3097893129954785}, {"date": "2025-03", "value": 0.32225116559457423}, {"date": "2025-04", "value": 0.31690629965853745}, {"date": "2025-05", "value": 0.2816259821562145}, {"date": "2025-06", "value": 0.26930888207381476}, {"date": "2025-07", "value": 0.24290771972457872}, {"date": "2025-08", "value": 0.41272182301682214}, {"date": "2025-09", "value": 0.34749891918078846}, {"date": "2025-10", "value": 0.35285222834520763}, {"date": "2025-11", "value": 0.42973905968604914}, {"date": "2025-12", "value": 0.48990564431720196}, {"date": "2026-01", "value": 0.49593919256939867}, {"date": "2026-02", "value": 0.4980194387762924}, {"date": "2026-03", "value": 0.4915258830789923}, {"date": "2026-04", "value": 0.5350164945072904}, {"date": "2026-05", "value": 0.5114230152311628}]}, "Rentabilidad": {"condition": ">0", "threshold": 0, "direction": "greater", "format": "pct", "desc": "Profit Margin — Anexo 13", "series": [{"date": "2025-01", "value": 0.28002659490661064}, {"date": "2025-02", "value": 0.30422237391192813}, {"date": "2025-03", "value": 0.2240180323150988}, {"date": "2025-04", "value": 0.12377778360574784}, {"date": "2025-05", "value": 0.08824424755538186}, {"date": "2025-06", "value": 0.09509707197792899}, {"date": "2025-07", "value": 0.07781326549813163}, {"date": "2025-08", "value": 0.0702323948779844}, {"date": "2025-09", "value": 0.029523024662292174}, {"date": "2025-10", "value": 0.05836046615505594}, {"date": "2025-11", "value": 0.06596839070262446}, {"date": "2025-12", "value": 0.03634611291117108}, {"date": "2026-01", "value": 0.019884382375168864}, {"date": "2026-02", "value": -0.07803891657531319}, {"date": "2026-03", "value": -0.13555083665518722}, {"date": "2026-04", "value": -0.29296229085917214}, {"date": "2026-05", "value": -0.30918410597559504}]}, "Utilización Flota": {"condition": ">=85%", "threshold": 0.85, "direction": "greater", "format": "pct", "desc": "Fleet Utilization Rate", "series": [{"date": "2025-01", "value": 0.9234167893961709}, {"date": "2025-02", "value": 0.9200567644276254}, {"date": "2025-03", "value": 0.9088064371926687}, {"date": "2025-04", "value": 0.9234368353891961}, {"date": "2025-05", "value": 0.9198209198209198}, {"date": "2025-06", "value": 0.8967984934086629}, {"date": "2025-07", "value": 0.899393506956832}, {"date": "2025-08", "value": 0.9090909090909091}, {"date": "2025-09", "value": 0.9084622983207112}, {"date": "2025-10", "value": 0.8968027856916746}, {"date": "2025-11", "value": 0.9039833531510107}, {"date": "2025-12", "value": 0.9032534246575342}, {"date": "2026-01", "value": 0.8872387238723872}, {"date": "2026-02", "value": 0.8687369519832986}, {"date": "2026-03", "value": 0.8548951048951049}, {"date": "2026-04", "value": 0.8463934819075006}, {"date": "2026-05", "value": 0.8236658932714617}]}}}, "breakdown": {"Covalto": {"Apalancamiento": {"formula": "(a) Liabilities / (b) Equity", "numerator": {"label": "(a) Liabilities", "unit": "MXN", "series": [{"date": "2024-12", "value": 605825676.6}, {"date": "2025-03", "value": 610601556.0}, {"date": "2025-06", "value": 862069922.0}, {"date": "2025-09", "value": 1058239442.0}, {"date": "2025-12", "value": 958984105.0}, {"date": "2026-03", "value": 1013176166.8800001}]}, "denominator": {"label": "(b) Equity", "unit": "MXN", "series": [{"date": "2024-12", "value": 294444422.24}, {"date": "2025-03", "value": 309787949.0}, {"date": "2025-06", "value": 314958514.0}, {"date": "2025-09", "value": 557861157.0}, {"date": "2025-12", "value": 905717461.0}, {"date": "2026-03", "value": 979405428.05}]}}, "Morosidad": {"formula": "(a) Past-Due Portfolio / (b) Total Portfolio", "numerator": {"label": "(a) Past-Due Portfolio", "unit": "MXN", "series": [{"date": "2024-12", "value": 14264744.0}, {"date": "2025-03", "value": 6500129.0}, {"date": "2025-06", "value": 11302303.0}, {"date": "2025-09", "value": 22822928.0}, {"date": "2025-12", "value": 34242854.0}, {"date": "2026-03", "value": 40691875.63}]}, "denominator": {"label": "(b) Total Portfolio", "unit": "MXN", "series": [{"date": "2024-12", "value": 514211928.99}, {"date": "2025-03", "value": 604619825.0}, {"date": "2025-06", "value": 728653058.0}, {"date": "2025-09", "value": 864162527.0}, {"date": "2025-12", "value": 971738833.0}, {"date": "2026-03", "value": 1050461981.28}]}}, "Cobertura": {"formula": "(a) Loan Loss Reserves / (b) Past-Due Portfolio", "numerator": {"label": "(a) Loan Loss Reserves", "unit": "MXN", "series": [{"date": "2024-12", "value": 19998276.13}, {"date": "2025-03", "value": 14606005.0}, {"date": "2025-06", "value": 18514958.0}, {"date": "2025-09", "value": 27003901.0}, {"date": "2025-12", "value": 30473360.0}, {"date": "2026-03", "value": 44952942.13}]}, "denominator": {"label": "(b) Past-Due Portfolio", "unit": "MXN", "series": [{"date": "2024-12", "value": 14264744.0}, {"date": "2025-03", "value": 6500129.0}, {"date": "2025-06", "value": 11302303.0}, {"date": "2025-09", "value": 22822928.0}, {"date": "2025-12", "value": 34242854.0}, {"date": "2026-03", "value": 40691875.63}]}}, "Capitalización": {"formula": "(a) Equity / (b) Total Assets", "numerator": {"label": "(a) Equity", "unit": "MXN", "series": [{"date": "2024-12", "value": 294444422.24}, {"date": "2025-03", "value": 309787949.0}, {"date": "2025-06", "value": 314958514.0}, {"date": "2025-09", "value": 557861157.0}, {"date": "2025-12", "value": 905717461.0}, {"date": "2026-03", "value": 979405428.05}]}, "denominator": {"label": "(b) Total Assets", "unit": "MXN", "series": [{"date": "2024-12", "value": 900776091.0}, {"date": "2025-03", "value": 970189532.0}, {"date": "2025-06", "value": 1177028436.0}, {"date": "2025-09", "value": 1616100599.0}, {"date": "2025-12", "value": 1864701566.0}, {"date": "2026-03", "value": 1992581594.92}]}}, "Rentabilidad": {"formula": "(a) Net Income LTM (ex. one-offs)", "numerator": {"label": "(a) Net Income LTM", "unit": "MXN", "series": [{"date": "2024-12", "value": 29758145.08}, {"date": "2025-03", "value": 13771463.0}, {"date": "2025-06", "value": 20481989.0}, {"date": "2025-09", "value": 34445989.12000002}, {"date": "2025-12", "value": 21729800.390000015}, {"date": "2026-03", "value": -14200000}]}}, "Cob. Intereses": {"formula": "((a) Interest Income + (b) Other Op. Revenue) / (c) Interest Expense", "components": [{"sign": "+", "label": "(a) Interest Income LTM", "unit": "MXN", "series": [{"date": "2024-12", "value": 93175984.82}, {"date": "2025-03", "value": 37995807.0}, {"date": "2025-06", "value": 82461814.0}, {"date": "2025-09", "value": 166271439.66}, {"date": "2025-12", "value": 207452500.44000003}, {"date": "2026-03", "value": 242125925.02}]}, {"sign": "+", "label": "(b) Other Op. Revenue LTM", "unit": "MXN", "series": [{"date": "2024-12", "value": 72790977.01}, {"date": "2025-03", "value": 16740878.0}, {"date": "2025-06", "value": 40551519.0}, {"date": "2025-09", "value": 88420565.52000001}, {"date": "2025-12", "value": 98437370.0}, {"date": "2026-03", "value": 122092578.75}]}, {"sign": "÷ (-)", "label": "(c) Interest Expense", "unit": "MXN", "series": [{"date": "2024-12", "value": -37057665.58}, {"date": "2025-03", "value": -17709959.0}, {"date": "2025-06", "value": -39461741.0}, {"date": "2025-09", "value": -79274638.94999999}, {"date": "2025-12", "value": -81108962.35}, {"date": "2026-03", "value": -85864592.20000002}]}]}, "Aforo": {"formula": "Collateral Ratio (pre-calculated)", "note": "Value reported directly by the facility — no driver decomposition available."}}, "BEEL LTO": {"Deuda/Capital": {"formula": "(a) Total Debt / (b) Equity", "numerator": {"label": "(a) Total Debt", "unit": "MXN", "series": [{"date": "2024-12", "value": 421957967.57000005}, {"date": "2025-03", "value": 488669516.0}, {"date": "2025-06", "value": 553480931.0}, {"date": "2025-09", "value": 518205428.0}, {"date": "2025-12", "value": 640166077.0}, {"date": "2026-03", "value": 636661299.96}]}, "denominator": {"label": "(b) Equity", "unit": "MXN", "series": [{"date": "2024-12", "value": 293546112.0}, {"date": "2025-03", "value": 309787949.0}, {"date": "2025-06", "value": 314711846.0}, {"date": "2025-09", "value": 557861157.0}, {"date": "2025-12", "value": 905717461.0}, {"date": "2026-03", "value": 979405428.05}]}}, "Deuda/Activos": {"formula": "(a) Total Debt / (b) Total Assets", "numerator": {"label": "(a) Total Debt", "unit": "MXN", "series": [{"date": "2024-12", "value": 421957967.57000005}, {"date": "2025-03", "value": 488669516.0}, {"date": "2025-06", "value": 553480931.0}, {"date": "2025-09", "value": 518205428.0}, {"date": "2025-12", "value": 640166077.0}, {"date": "2026-03", "value": 636661299.96}]}, "denominator": {"label": "(b) Total Assets", "unit": "MXN", "series": [{"date": "2024-12", "value": 900776091.0}, {"date": "2025-03", "value": 970189532.0}, {"date": "2025-06", "value": 1175118333.0}, {"date": "2025-09", "value": 1616100599.0}, {"date": "2025-12", "value": 1864701566.0}, {"date": "2026-03", "value": 1992581594.92}]}}, "Capital Contable": {"formula": "(a) Shareholders' Equity", "numerator": {"label": "(a) Equity", "unit": "MXN", "series": [{"date": "2024-12", "value": 293546112.0}, {"date": "2025-03", "value": 309787949.0}, {"date": "2025-06", "value": 314711846.0}, {"date": "2025-09", "value": 557861157.0}, {"date": "2025-12", "value": 905717461.0}, {"date": "2026-03", "value": 979405428.05}]}}, "Cartera Vencida": {"formula": "(a) Past-Due Portfolio / (b) Total Portfolio", "numerator": {"label": "(a) Past-Due Portfolio", "unit": "MXN", "series": [{"date": "2024-12", "value": 8247886.0}, {"date": "2025-03", "value": 6500129.0}, {"date": "2025-06", "value": 11302303.0}, {"date": "2025-09", "value": 22822928.0}, {"date": "2025-12", "value": 34242854.0}, {"date": "2026-03", "value": 40691875.63}]}, "denominator": {"label": "(b) Total Portfolio", "unit": "MXN", "series": [{"date": "2024-12", "value": 509373195.0}, {"date": "2025-03", "value": 604619825.0}, {"date": "2025-06", "value": 728890169.0}, {"date": "2025-09", "value": 864162527.0}, {"date": "2025-12", "value": 971738833.0}, {"date": "2026-03", "value": 1050461981.28}]}}, "Aforo": {"formula": "Collateral Ratio", "note": "Reported directly."}}, "BEEL Green": {"DSCR": {"formula": "(a) Available Cash Flow / (b) Debt Service", "note": "Measured quarterly. The first measurement period (Q4 2023) only covers Nov + Dec 2023 because the disposition occurred on 9-Nov-2023.", "numerator": {"label": "(a) Available Cash Flow", "unit": "MXN", "series": [{"date": "2023-12", "value": 9065255}, {"date": "2024-03", "value": 13589609}, {"date": "2024-06", "value": 13512361}, {"date": "2024-09", "value": 13609294}, {"date": "2024-12", "value": 14087732}, {"date": "2025-03", "value": 13996546}, {"date": "2025-06", "value": 13805071}, {"date": "2025-09", "value": 14011635}, {"date": "2025-12", "value": 14406294}, {"date": "2026-03", "value": 14426884}]}, "denominator": {"label": "(b) Debt Service", "unit": "MXN", "series": [{"date": "2023-12", "value": 7652717}, {"date": "2024-03", "value": 12062358}, {"date": "2024-06", "value": 12053740}, {"date": "2024-09", "value": 12089332}, {"date": "2024-12", "value": 12323573}, {"date": "2025-03", "value": 12445783}, {"date": "2025-06", "value": 12362934}, {"date": "2025-09", "value": 12409910}, {"date": "2025-12", "value": 12849823}, {"date": "2026-03", "value": 12573007}]}}}, "BEEL VCN": {"Apalancamiento": {"formula": "(a) Total Debt / (b) Total Assets", "numerator": {"label": "(a) Total Debt", "unit": "MXN", "series": [{"date": "2025-06", "value": 98023550.0}, {"date": "2025-08", "value": 103531259.0}, {"date": "2025-09", "value": 103531259.0}, {"date": "2025-12", "value": 99180069.0}, {"date": "2026-03", "value": 100150853}]}, "denominator": {"label": "(b) Total Assets", "unit": "MXN", "series": [{"date": "2025-06", "value": 494176521.0}, {"date": "2025-08", "value": 474162899.0}, {"date": "2025-09", "value": 474162899.0}, {"date": "2025-12", "value": 765974901.0}, {"date": "2026-03", "value": 896036609}]}}, "DSCR": {"formula": "((a) FISO Inflows − (b) Applied Outflows) / (c) Debt Service", "note": "Not applicable during Implementation Period.", "components": [{"sign": "+", "label": "(a) FISO Inflows", "unit": "MXN", "series": []}, {"sign": "-", "label": "(b) Applied Outflows", "unit": "MXN", "series": []}, {"sign": "÷", "label": "(c) Debt Service", "unit": "MXN", "series": []}]}, "RCVB": {"formula": "(a) NPV Cash Flows BEEL / (b) BEEL Outstanding", "numerator": {"label": "(a) NPV Cash Flows BEEL", "unit": "MXN", "series": [{"date": "2025-06", "value": 968739286.71}, {"date": "2025-08", "value": 993911056.113102}, {"date": "2025-09", "value": 993911056.113102}, {"date": "2025-12", "value": 1117463390.0}, {"date": "2026-03", "value": 1323842432}]}, "denominator": {"label": "(b) BEEL Outstanding", "unit": "MXN", "series": [{"date": "2025-06", "value": 115000000.0}, {"date": "2025-09", "value": 115000000.0}, {"date": "2025-12", "value": 115000000.0}, {"date": "2026-03", "value": 115000000}]}}, "RCVMCN": {"formula": "(a) NPV Cash Flows MCN / (b) Total Debt Outstanding", "numerator": {"label": "(a) NPV Cash Flows MCN", "unit": "MXN", "series": [{"date": "2025-06", "value": 968739286.71}, {"date": "2025-09", "value": 993911056.113102}, {"date": "2025-12", "value": 1117463390.0}, {"date": "2026-03", "value": 1323842432}]}, "denominator": {"label": "(b) Total Debt Outstanding", "unit": "MXN", "series": [{"date": "2025-06", "value": 115000000.0}, {"date": "2025-09", "value": 115000000.0}, {"date": "2025-12", "value": 115000000.0}, {"date": "2026-03", "value": 115000000}]}}, "SPI": {"formula": "(a) Physical Progress Actual / (b) Physical Progress Planned", "numerator": {"label": "(a) Physical Progress Actual", "unit": "%", "series": [{"date": "2025-06", "value": 0.9744}, {"date": "2025-09", "value": 1.0}, {"date": "2025-12", "value": 1.0}, {"date": "2026-03", "value": 1.0}]}, "denominator": {"label": "(b) Physical Progress Planned", "unit": "%", "series": [{"date": "2025-06", "value": 0.9844}, {"date": "2025-09", "value": 1.0}, {"date": "2025-12", "value": 1.0}, {"date": "2026-03", "value": 1.0}]}}, "Hubs B2C": {"formula": "B2C Hubs / BEEL Portfolio", "note": "Composition metric — reported directly."}}, "PROMECAP": {"Aforo": {"formula": "((a) Portfolio + (b) Reserve + (c) Credit) / ((d) Outstanding Credit + (e) Unpaid Interest)", "sheet": "Anexo 9 (Aforo)", "numerator_components": [{"sign": "+", "label": "(a) Portfolio (Saldo Insoluto Cartera Cedida FISO)", "unit": "MXN", "series": [{"date": "2025-01", "value": null}, {"date": "2025-02", "value": 41180117.2}, {"date": "2025-03", "value": 40483622.190000005}, {"date": "2025-04", "value": 39832675.839999996}, {"date": "2025-05", "value": 39096915.26}, {"date": "2025-06", "value": 107884865.44999996}, {"date": "2025-07", "value": 177525683.47000003}, {"date": "2025-08", "value": 169978271.16000003}, {"date": "2025-09", "value": 251926580.9696653}, {"date": "2025-10", "value": 241835584.98000005}, {"date": "2025-11", "value": 230964833.8999998}, {"date": "2025-12", "value": 369221601.379323}, {"date": "2026-01", "value": 357590644.7400001}, {"date": "2026-02", "value": 380571946.7300001}, {"date": "2026-03", "value": 430622124.11000013}, {"date": "2026-04", "value": 386041212.13000023}, {"date": "2026-05", "value": 376458414.36000013}]}, {"sign": "+", "label": "(b) Reserve (Cash)", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 0.0}, {"date": "2025-09", "value": 0.0}, {"date": "2025-10", "value": 0.0}, {"date": "2025-11", "value": 0.0}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 4183102.15333333}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 0.0}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 0.0}]}, {"sign": "+", "label": "(c) Credit (Cash)", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 361666.67}, {"date": "2025-04", "value": 350000.0}, {"date": "2025-05", "value": 361666.67}, {"date": "2025-06", "value": 904166.6666666667}, {"date": "2025-07", "value": 1090833.33}, {"date": "2025-08", "value": 1627500.0}, {"date": "2025-09", "value": 2290555.56}, {"date": "2025-10", "value": 2290555.56}, {"date": "2025-11", "value": 2216666.67}, {"date": "2025-12", "value": 3616666.67}, {"date": "2026-01", "value": 4309020.94}, {"date": "2026-02", "value": 7240629.59}, {"date": "2026-03", "value": 3622972.01}, {"date": "2026-04", "value": 3620558.31}, {"date": "2026-05", "value": 3617211.91}]}], "denominator_components": [{"sign": "+", "label": "(d) Outstanding Credit", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 30000000.0}, {"date": "2025-03", "value": 30000000.0}, {"date": "2025-04", "value": 30000000.0}, {"date": "2025-05", "value": 30000000.0}, {"date": "2025-06", "value": 75000000.0}, {"date": "2025-07", "value": 135000000.0}, {"date": "2025-08", "value": 135000000.0}, {"date": "2025-09", "value": 190000000.0}, {"date": "2025-10", "value": 190000000.0}, {"date": "2025-11", "value": 190000000.0}, {"date": "2025-12", "value": 300000000.0}, {"date": "2026-01", "value": 300000000.0}, {"date": "2026-02", "value": 300000000.0}, {"date": "2026-03", "value": 300000000.0}, {"date": "2026-04", "value": 300000000.0}, {"date": "2026-05", "value": 300000000.0}]}, {"sign": "+", "label": "(e) Unpaid Interest", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 350000.0}, {"date": "2025-05", "value": 361666.67}, {"date": "2025-06", "value": 402500.0}, {"date": "2025-07", "value": 1090833.33}, {"date": "2025-08", "value": 1627500.0}, {"date": "2025-09", "value": 1660555.56}, {"date": "2025-10", "value": 2290555.56}, {"date": "2025-11", "value": 2216666.67}, {"date": "2025-12", "value": 2803888.88888889}, {"date": "2026-01", "value": 3616666.67}, {"date": "2026-02", "value": 3266666.66666667}, {"date": "2026-03", "value": 3616666.666666667}, {"date": "2026-04", "value": 3500000.0000000005}, {"date": "2026-05", "value": 3616666.666666667}]}]}, "Morosidad Total": {"formula": "((a) Past-Due Clients + (b) Write-offs L12M) / ((c) Total Portfolio + (d) Write-offs L12M)", "sheet": "Anexo 10 (Cartera Vencida)", "numerator_components": [{"sign": "+", "label": "(a) Past-Due Clients (+90d)", "unit": "MXN", "series": [{"date": "2025-01", "value": 13864096.0}, {"date": "2025-02", "value": 13258647.31}, {"date": "2025-03", "value": 6500129.0}, {"date": "2025-04", "value": 5179252.0}, {"date": "2025-05", "value": 8088418.17}, {"date": "2025-06", "value": 11302303.0}, {"date": "2025-07", "value": 12268373.0}, {"date": "2025-08", "value": 18282001.41}, {"date": "2025-09", "value": 22822928.0}, {"date": "2025-10", "value": 33257549.0}, {"date": "2025-11", "value": 32457619.0}, {"date": "2025-12", "value": 34242853.72}, {"date": "2026-01", "value": 19769094.78}, {"date": "2026-02", "value": 32256908.85}, {"date": "2026-03", "value": 36884209.82999999}, {"date": "2026-04", "value": 47783233.56}, {"date": "2026-05", "value": 58503088.410000004}]}, {"sign": "+", "label": "(b) Write-offs L12M", "unit": "MXN", "series": [{"date": "2025-01", "value": 5907891.39}, {"date": "2025-02", "value": 7963582.56}, {"date": "2025-03", "value": 11820235.09}, {"date": "2025-04", "value": 12847146.53}, {"date": "2025-05", "value": 13483018.469999999}, {"date": "2025-06", "value": 15366154.11}, {"date": "2025-07", "value": 15776010.67}, {"date": "2025-08", "value": 16143672.2}, {"date": "2025-09", "value": 14410287.73}, {"date": "2025-10", "value": 12789664.219999999}, {"date": "2025-11", "value": 11420101.07}, {"date": "2025-12", "value": 14847447.864473999}, {"date": "2026-01", "value": 19576279.954474}, {"date": "2026-02", "value": 16515476.174474}, {"date": "2026-03", "value": 12526478.724474}, {"date": "2026-04", "value": 12257146.384474}, {"date": "2026-05", "value": 20880434.914474003}]}], "denominator_components": [{"sign": "+", "label": "(c) Total Portfolio", "unit": "MXN", "series": [{"date": "2025-01", "value": 540848504.3}, {"date": "2025-02", "value": 565090034.05}, {"date": "2025-03", "value": 604641942.9000002}, {"date": "2025-04", "value": 644982777.779}, {"date": "2025-05", "value": 685626281.07}, {"date": "2025-06", "value": 729218543.22}, {"date": "2025-07", "value": 783968324.21}, {"date": "2025-08", "value": 830005857.13}, {"date": "2025-09", "value": 863888714.04}, {"date": "2025-10", "value": 885141302.51}, {"date": "2025-11", "value": 947216534.73}, {"date": "2025-12", "value": 972696653.8900001}, {"date": "2026-01", "value": 995697234.19}, {"date": "2026-02", "value": 1025762830.8699999}, {"date": "2026-03", "value": 1048598242.5617241}, {"date": "2026-04", "value": 1078807681.289999}, {"date": "2026-05", "value": 1092015311.45}]}, {"sign": "+", "label": "(d) Write-offs L12M", "unit": "MXN", "series": [{"date": "2025-01", "value": 5907891.39}, {"date": "2025-02", "value": 7963582.56}, {"date": "2025-03", "value": 11820235.09}, {"date": "2025-04", "value": 12847146.53}, {"date": "2025-05", "value": 13483018.469999999}, {"date": "2025-06", "value": 15366154.11}, {"date": "2025-07", "value": 15776010.67}, {"date": "2025-08", "value": 16143672.2}, {"date": "2025-09", "value": 14410287.73}, {"date": "2025-10", "value": 12789664.219999999}, {"date": "2025-11", "value": 11420101.07}, {"date": "2025-12", "value": 14847447.864473999}, {"date": "2026-01", "value": 19576279.954474}, {"date": "2026-02", "value": 16515476.174474}, {"date": "2026-03", "value": 12526478.724474}, {"date": "2026-04", "value": 12257146.384474}, {"date": "2026-05", "value": 20880434.914474003}]}]}, "Morosidad Pledged": {"formula": "((a) Pledged Past-Due + (b) Pledged Write-offs) / ((c) Pledged Portfolio + (d) Pledged Write-offs)", "sheet": "Anexo 10 (Cartera Vencida)", "numerator_components": [{"sign": "+", "label": "(a) Pledged Past-Due Clients (+90d)", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 1089410.26}, {"date": "2025-09", "value": 3038522.2389610005}, {"date": "2025-10", "value": 6806353.43}, {"date": "2025-11", "value": 6306798.070000001}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 724222.99}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 8119297.529999999}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 9758605.920000002}]}, {"sign": "+", "label": "(b) Pledged Write-offs", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 0.0}, {"date": "2025-09", "value": 0.0}, {"date": "2025-10", "value": 0.0}, {"date": "2025-11", "value": 0.0}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 0.0}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 0.0}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 0.0}]}], "denominator_components": [{"sign": "+", "label": "(c) Pledged Portfolio", "unit": "MXN", "series": [{"date": "2025-01", "value": null}, {"date": "2025-02", "value": 41180117.2}, {"date": "2025-03", "value": 40483622.190000005}, {"date": "2025-04", "value": 39832675.839999996}, {"date": "2025-05", "value": 39096915.26}, {"date": "2025-06", "value": 107884865.44999996}, {"date": "2025-07", "value": 177525683.47000003}, {"date": "2025-08", "value": 169978271.16000003}, {"date": "2025-09", "value": 251926580.9696653}, {"date": "2025-10", "value": 241835584.98000005}, {"date": "2025-11", "value": 230964833.8999998}, {"date": "2025-12", "value": 369221601.379323}, {"date": "2026-01", "value": 357590644.7400001}, {"date": "2026-02", "value": 380571946.7300001}, {"date": "2026-03", "value": 430622124.11000013}, {"date": "2026-04", "value": 386041212.13000023}, {"date": "2026-05", "value": 376458414.36000013}]}, {"sign": "+", "label": "(d) Pledged Write-offs", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 0.0}, {"date": "2025-09", "value": 0.0}, {"date": "2025-10", "value": 0.0}, {"date": "2025-11", "value": 0.0}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 0.0}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 0.0}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 0.0}]}]}, "Apalancamiento": {"formula": "(Net Debt = (a)+(b)+(c)+(d)+(e)+(f)+(g)+(h)+(i) − (j)) / (k) Net Portfolio", "sheet": "(Anexo 11) Apalancamiento", "numerator_components": [{"sign": "+", "label": "(a) Borrowed Money Obligations", "unit": "MXN", "series": [{"date": "2025-01", "value": 477171618.75999993}, {"date": "2025-02", "value": 509158537.48}, {"date": "2025-03", "value": 493899721.72999996}, {"date": "2025-04", "value": 482529975.79}, {"date": "2025-05", "value": 521079805.15000004}, {"date": "2025-06", "value": 564234339.78}, {"date": "2025-07", "value": 642192247.6900002}, {"date": "2025-08", "value": 469925240.88999987}, {"date": "2025-09", "value": 527176779.33}, {"date": "2025-10", "value": 524016290.27000004}, {"date": "2025-11", "value": 525969199.82000005}, {"date": "2025-12", "value": 647685429.3500001}, {"date": "2026-01", "value": 643488154.11}, {"date": "2026-02", "value": 644612714.9300001}, {"date": "2026-03", "value": 645222962.63}, {"date": "2026-04", "value": 643427201.61}, {"date": "2026-05", "value": 638694527.4299998}]}, {"sign": "+", "label": "(b) Bond/Note Obligations", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 0.0}, {"date": "2025-09", "value": 0.0}, {"date": "2025-10", "value": 0.0}, {"date": "2025-11", "value": 0.0}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 0.0}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 0.0}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 0.0}]}, {"sign": "+", "label": "(c) Deferred Purchase Price", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 0.0}, {"date": "2025-09", "value": 0.0}, {"date": "2025-10", "value": 0.0}, {"date": "2025-11", "value": 0.0}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 0.0}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 0.0}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 0.0}]}, {"sign": "+", "label": "(d) Lease Obligations", "unit": "MXN", "series": [{"date": "2025-01", "value": 41439.32}, {"date": "2025-02", "value": 41439.32}, {"date": "2025-03", "value": 1175882.5002285333}, {"date": "2025-04", "value": 1136214.04603287}, {"date": "2025-05", "value": 1096483.66938021}, {"date": "2025-06", "value": 1056691.2736095898}, {"date": "2025-07", "value": 1016836.7619091744}, {"date": "2025-08", "value": 976920.0373159946}, {"date": "2025-09", "value": 936941.002715725}, {"date": "2025-10", "value": 896899.5608424443}, {"date": "2025-11", "value": 856795.6142783994}, {"date": "2025-12", "value": 816629.065453768}, {"date": "2026-01", "value": 10798614.66}, {"date": "2026-02", "value": 10420838.367787832}, {"date": "2026-03", "value": 10093572.43747611}, {"date": "2026-04", "value": 9765795.645047167}, {"date": "2026-05", "value": 9437507.19304525}]}, {"sign": "+", "label": "(e) Interest-bearing Obligations", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 0.0}, {"date": "2025-09", "value": 0.0}, {"date": "2025-10", "value": 0.0}, {"date": "2025-11", "value": 0.0}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 0.0}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 0.0}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 0.0}]}, {"sign": "+", "label": "(f) Third-party Guarantees", "unit": "MXN", "series": [{"date": "2025-01", "value": 21001029.55316253}, {"date": "2025-02", "value": 20088531.50911183}, {"date": "2025-03", "value": 19170971.357990555}, {"date": "2025-04", "value": 17577666.33044987}, {"date": "2025-05", "value": 16528347.883115208}, {"date": "2025-06", "value": 15325303.422296196}, {"date": "2025-07", "value": 14487207.1571049}, {"date": "2025-08", "value": 13575288.449265007}, {"date": "2025-09", "value": 12563267.834681377}, {"date": "2025-10", "value": 11900533.463794831}, {"date": "2025-11", "value": 10893536.089219138}, {"date": "2025-12", "value": 9874524.821709484}, {"date": "2026-01", "value": 9160252.468176624}, {"date": "2026-02", "value": 8164532.70476735}, {"date": "2026-03", "value": 7556171.995557932}, {"date": "2026-04", "value": 6395800.779434571}, {"date": "2026-05", "value": 5390853.28513106}]}, {"sign": "+", "label": "(g) Reimbursement Obligations", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 0.0}, {"date": "2025-09", "value": 0.0}, {"date": "2025-10", "value": 0.0}, {"date": "2025-11", "value": 0.0}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 0.0}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 0.0}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 0.0}]}, {"sign": "+", "label": "(h) Shareholder Obligations", "unit": "MXN", "series": [{"date": "2025-01", "value": 7475879.54}, {"date": "2025-02", "value": 4680932.4399999995}, {"date": "2025-03", "value": 3890488.94}, {"date": "2025-04", "value": 1908538.22}, {"date": "2025-05", "value": 2172606.2600000002}, {"date": "2025-06", "value": 4278196.42}, {"date": "2025-07", "value": 1703470.6199999999}, {"date": "2025-08", "value": 9941649.93}, {"date": "2025-09", "value": 20855575.87}, {"date": "2025-10", "value": 16381213.45}, {"date": "2025-11", "value": 24041866.400000002}, {"date": "2025-12", "value": 21656890.62}, {"date": "2026-01", "value": 26948448.330000002}, {"date": "2026-02", "value": 30009233.81}, {"date": "2026-03", "value": 31014911.2}, {"date": "2026-04", "value": 28214310.52}, {"date": "2026-05", "value": 19198982.560000002}]}, {"sign": "+", "label": "(i) Other Liabilities", "unit": "MXN", "series": [{"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 0.0}, {"date": "2025-09", "value": 0.0}, {"date": "2025-10", "value": 0.0}, {"date": "2025-11", "value": 0.0}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 0.0}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 0.0}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 0.0}]}, {"sign": "−", "label": "(j) Cash & Equivalents", "unit": "MXN", "series": [{"date": "2025-01", "value": -161361553.26}, {"date": "2025-02", "value": -195461027.47000003}, {"date": "2025-03", "value": -144470770.51}, {"date": "2025-04", "value": -130064767.54999997}, {"date": "2025-05", "value": -108764294.38000003}, {"date": "2025-06", "value": -112766212.6}, {"date": "2025-07", "value": -115852715.63999999}, {"date": "2025-08", "value": -98661057.89}, {"date": "2025-09", "value": -111660333.91000003}, {"date": "2025-10", "value": -103045842.53999999}, {"date": "2025-11", "value": -44462552.239999935}, {"date": "2025-12", "value": -48215866.36}, {"date": "2026-01", "value": -33064412.299999993}, {"date": "2026-02", "value": -54864259.29000001}, {"date": "2026-03", "value": -51216669.22000001}, {"date": "2026-04", "value": -48018427.45}, {"date": "2026-05", "value": -42139429.31999999}]}], "denominator_components": [{"sign": "+", "label": "(k) Net Portfolio", "unit": "MXN", "series": [{"date": "2025-01", "value": 521330465.87999994}, {"date": "2025-02", "value": 547194471.05}, {"date": "2025-03", "value": 373666294.01821905}, {"date": "2025-04", "value": 373087626.8364828}, {"date": "2025-05", "value": 432112948.58249545}, {"date": "2025-06", "value": 472128318.2959057}, {"date": "2025-07", "value": 543547046.5890142}, {"date": "2025-08", "value": 395758041.4165809}, {"date": "2025-09", "value": 449872230.127397}, {"date": "2025-10", "value": 450149094.2046374}, {"date": "2025-11", "value": 517298845.6834976}, {"date": "2025-12", "value": 631817607.4971634}, {"date": "2026-01", "value": 657331057.2681767}, {"date": "2026-02", "value": 638343060.5225552}, {"date": "2026-03", "value": 642670949.0430341}, {"date": "2026-04", "value": 639784681.1044817}, {"date": "2026-05", "value": 630582441.1481762}]}]}, "Capitalización": {"formula": "(a) Equity / (b) Total Assets", "sheet": "(Anexo 12) Capitalización", "numerator_components": [{"sign": "+", "label": "(a) Equity", "unit": "MXN", "series": [{"date": "2025-01", "value": 306479564.67}, {"date": "2025-02", "value": 308820594.67}, {"date": "2025-03", "value": 312644707.67}, {"date": "2025-04", "value": 314371158.67}, {"date": "2025-05", "value": 311621412.36}, {"date": "2025-06", "value": 316469804.36}, {"date": "2025-07", "value": 317302322.36}, {"date": "2025-08", "value": 560296186.36}, {"date": "2025-09", "value": 561593211.36}, {"date": "2025-10", "value": 642056618.36}, {"date": "2025-11", "value": 770136086.36}, {"date": "2025-12", "value": 913527824.36}, {"date": "2026-01", "value": 920991875.25}, {"date": "2026-02", "value": 941030948.25}, {"date": "2026-03", "value": 979405428.05}, {"date": "2026-04", "value": 1100247545.05}, {"date": "2026-05", "value": 1140403157.05}]}], "denominator_components": [{"sign": "+", "label": "(b) Total Assets", "unit": "MXN", "series": [{"date": "2025-01", "value": 914846712.05}, {"date": "2025-02", "value": 996872976.9399998}, {"date": "2025-03", "value": 970189532.4200002}, {"date": "2025-04", "value": 992000345.2399999}, {"date": "2025-05", "value": 1106508035.85}, {"date": "2025-06", "value": 1175118332.24}, {"date": "2025-07", "value": 1306266934.29}, {"date": "2025-08", "value": 1357563751.45}, {"date": "2025-09", "value": 1616100598.77}, {"date": "2025-10", "value": 1819618998.5}, {"date": "2025-11", "value": 1792101669.61}, {"date": "2025-12", "value": 1864701570.5100002}, {"date": "2026-01", "value": 1857066126.3500001}, {"date": "2026-02", "value": 1889546622.0400002}, {"date": "2026-03", "value": 1992581594.92}, {"date": "2026-04", "value": 2056474064.53}, {"date": "2026-05", "value": 2229862800.63}]}]}, "Rentabilidad": {"formula": "(a) Net Income L3M / (b) Total Revenues L3M", "sheet": "(Anexo 13) Rentabilidad", "numerator_components": [{"sign": "+", "label": "(a) Net Income L3M (after tax)", "unit": "MXN", "series": [{"date": "2025-01", "value": 19117981.33000001}, {"date": "2025-02", "value": 20371678.469999995}, {"date": "2025-03", "value": 14497176.0}, {"date": "2025-04", "value": 7891594.0}, {"date": "2025-05", "value": 6471829.0}, {"date": "2025-06", "value": 7496108.0}, {"date": "2025-07", "value": 6602175.0}, {"date": "2025-08", "value": 6415874.0}, {"date": "2025-09", "value": 2864507.0}, {"date": "2025-10", "value": 6109116.0}, {"date": "2025-11", "value": 8087656.0}, {"date": "2025-12", "value": 4682369.0}, {"date": "2026-01", "value": 2879660.0}, {"date": "2026-02", "value": -10294771.0}, {"date": "2026-03", "value": -17448893.0}, {"date": "2026-04", "value": -33881194.0}, {"date": "2026-05", "value": -37214655.0}]}], "denominator_components": [{"sign": "+", "label": "(b) Total Revenues L3M", "unit": "MXN", "series": [{"date": "2025-01", "value": 68272020.15}, {"date": "2025-02", "value": 66963117.17}, {"date": "2025-03", "value": 64714326.11999999}, {"date": "2025-04", "value": 63756142.419999994}, {"date": "2025-05", "value": 73339953.36}, {"date": "2025-06", "value": 78825854.93}, {"date": "2025-07", "value": 84846394.22}, {"date": "2025-08", "value": 91352060.7}, {"date": "2025-09", "value": 97026203.53999999}, {"date": "2025-10", "value": 104679013.08000003}, {"date": "2025-11", "value": 122598958.59000003}, {"date": "2025-12", "value": 128827228.69000003}, {"date": "2026-01", "value": 144820188.31}, {"date": "2026-02", "value": 131918425.47}, {"date": "2026-03", "value": 128725822.94999999}, {"date": "2026-04", "value": 115650358.61999999}, {"date": "2026-05", "value": 120364062.32}]}]}, "Utilización Flota": {"formula": "((a) Leased Vehicles + (b) Substitutes Assigned) / ((a)+(b) + (c) Repossessed + (d) Fixed Assets + (e) Substitute Pool + (f) Past-Due)", "sheet": "Factor de utilización de flota", "numerator_components": [{"sign": "+", "label": "(a) Leased Vehicles", "unit": "#", "series": [{"date": "2024-12", "value": 1820.0}, {"date": "2025-01", "value": 1878.0}, {"date": "2025-02", "value": 1942.0}, {"date": "2025-03", "value": 2030.0}, {"date": "2025-04", "value": 2165.0}, {"date": "2025-05", "value": 2254.0}, {"date": "2025-06", "value": 2375.0}, {"date": "2025-07", "value": 2504.0}, {"date": "2025-08", "value": 2623.0}, {"date": "2025-09", "value": 2730.0}, {"date": "2025-10", "value": 2802.0}, {"date": "2025-11", "value": 2966.0}, {"date": "2025-12", "value": 3051.0}, {"date": "2026-01", "value": 3112.0}, {"date": "2026-02", "value": 3216.0}, {"date": "2026-03", "value": 3301.0}, {"date": "2026-04", "value": 3384.0}, {"date": "2026-05", "value": 3418.0}]}, {"sign": "+", "label": "(b) Substitutes Assigned", "unit": "#", "series": [{"date": "2024-12", "value": 3.0}, {"date": "2025-01", "value": 3.0}, {"date": "2025-02", "value": 3.0}, {"date": "2025-03", "value": 3.0}, {"date": "2025-04", "value": 6.0}, {"date": "2025-05", "value": 6.0}, {"date": "2025-06", "value": 6.0}, {"date": "2025-07", "value": 17.0}, {"date": "2025-08", "value": 27.0}, {"date": "2025-09", "value": 29.0}, {"date": "2025-10", "value": 31.0}, {"date": "2025-11", "value": 75.0}, {"date": "2025-12", "value": 114.0}, {"date": "2026-01", "value": 114.0}, {"date": "2026-02", "value": 113.0}, {"date": "2026-03", "value": 122.0}, {"date": "2026-04", "value": 148.0}, {"date": "2026-05", "value": 103.0}]}], "denominator_components": [{"sign": "+", "label": "(a)+(b) Leased + Substitutes Assigned", "unit": "#", "series": [{"date": "2024-12", "value": 0.0}, {"date": "2025-01", "value": 0.0}, {"date": "2025-02", "value": 0.0}, {"date": "2025-03", "value": 0.0}, {"date": "2025-04", "value": 0.0}, {"date": "2025-05", "value": 0.0}, {"date": "2025-06", "value": 0.0}, {"date": "2025-07", "value": 0.0}, {"date": "2025-08", "value": 0.0}, {"date": "2025-09", "value": 0.0}, {"date": "2025-10", "value": 0.0}, {"date": "2025-11", "value": 0.0}, {"date": "2025-12", "value": 0.0}, {"date": "2026-01", "value": 0.0}, {"date": "2026-02", "value": 0.0}, {"date": "2026-03", "value": 0.0}, {"date": "2026-04", "value": 0.0}, {"date": "2026-05", "value": 29.0}]}, {"sign": "+", "label": "(c) Repossessed Assets", "unit": "#", "series": [{"date": "2024-12", "value": 1823.0}, {"date": "2025-01", "value": 1881.0}, {"date": "2025-02", "value": 1945.0}, {"date": "2025-03", "value": 2033.0}, {"date": "2025-04", "value": 2171.0}, {"date": "2025-05", "value": 2260.0}, {"date": "2025-06", "value": 2381.0}, {"date": "2025-07", "value": 2521.0}, {"date": "2025-08", "value": 2650.0}, {"date": "2025-09", "value": 2759.0}, {"date": "2025-10", "value": 2833.0}, {"date": "2025-11", "value": 3041.0}, {"date": "2025-12", "value": 3165.0}, {"date": "2026-01", "value": 3226.0}, {"date": "2026-02", "value": 3329.0}, {"date": "2026-03", "value": 3423.0}, {"date": "2026-04", "value": 3532.0}, {"date": "2026-05", "value": 3550.0}]}, {"sign": "+", "label": "(d) Fixed Assets", "unit": "#", "series": [{"date": "2024-12", "value": 89.0}, {"date": "2025-01", "value": 84.0}, {"date": "2025-02", "value": 97.0}, {"date": "2025-03", "value": 132.0}, {"date": "2025-04", "value": 108.0}, {"date": "2025-05", "value": 125.0}, {"date": "2025-06", "value": 202.0}, {"date": "2025-07", "value": 217.0}, {"date": "2025-08", "value": 195.0}, {"date": "2025-09", "value": 218.0}, {"date": "2025-10", "value": 267.0}, {"date": "2025-11", "value": 243.0}, {"date": "2025-12", "value": 239.0}, {"date": "2026-01", "value": 312.0}, {"date": "2026-02", "value": 403.0}, {"date": "2026-03", "value": 489.0}, {"date": "2026-04", "value": 575.0}, {"date": "2026-05", "value": 650.0}]}, {"sign": "+", "label": "(e) Substitute Pool", "unit": "#", "series": [{"date": "2024-12", "value": 68.0}, {"date": "2025-01", "value": 70.0}, {"date": "2025-02", "value": 70.0}, {"date": "2025-03", "value": 70.0}, {"date": "2025-04", "value": 70.0}, {"date": "2025-05", "value": 70.0}, {"date": "2025-06", "value": 70.0}, {"date": "2025-07", "value": 57.0}, {"date": "2025-08", "value": 58.0}, {"date": "2025-09", "value": 47.0}, {"date": "2025-10", "value": 45.0}, {"date": "2025-11", "value": 46.0}, {"date": "2025-12", "value": 49.0}, {"date": "2026-01", "value": 47.0}, {"date": "2026-02", "value": 49.0}, {"date": "2026-03", "value": 49.0}, {"date": "2026-04", "value": 49.0}, {"date": "2026-05", "value": 48.0}]}, {"sign": "+", "label": "(f) Past-Due Portfolio", "unit": "#", "series": [{"date": "2024-12", "value": 5.0}, {"date": "2025-01", "value": 5.0}, {"date": "2025-02", "value": 5.0}, {"date": "2025-03", "value": 5.0}, {"date": "2025-04", "value": 8.0}, {"date": "2025-05", "value": 8.0}, {"date": "2025-06", "value": 8.0}, {"date": "2025-07", "value": 25.0}, {"date": "2025-08", "value": 39.0}, {"date": "2025-09", "value": 42.0}, {"date": "2025-10", "value": 45.0}, {"date": "2025-11", "value": 109.0}, {"date": "2025-12", "value": 165.0}, {"date": "2026-01", "value": 165.0}, {"date": "2026-02", "value": 164.0}, {"date": "2026-03", "value": 165.0}, {"date": "2026-04", "value": 165.0}, {"date": "2026-05", "value": 165.0}]}]}}}, "facilities": [{"key": "BEEL VCN", "facility": "Charging Network · Proyecto Milka", "entity": "Beel Infra / Banco Actinver", "contract_date": "2025-06-30", "maturity": "2037-06-06", "currency": "MXN", "line": 500000000, "drawn": 115000000, "outstanding": 190000000, "rate_label": "TIIE +6.85%", "rate": 0.1379, "has_covenants": true, "revolving": false, "note": "Implementation period · Grace period until Jun-2028", "effective_rate": 0.138, "rate_type": "floating", "business": "VCN"}, {"key": "PROMECAP", "facility": "LTO", "entity": "Ficade / Banco Invex F/5926", "contract_date": "2025-01-10", "maturity": "2030-01-31", "currency": "MXN", "line": 400000000, "drawn": 300000000, "outstanding": 300000000, "rate_label": "14.00% Fixed", "rate": 0.14, "has_covenants": true, "revolving": false, "note": "", "effective_rate": 0.14, "rate_type": "fixed", "business": "LTO"}, {"key": "BEEL LTO", "facility": "VEMO LTO", "entity": "Beel Infra / Banco Actinver F/5166", "contract_date": "2023-12-13", "maturity": "2029-03-04", "currency": "MXN", "line": 200000000, "drawn": 200000000, "outstanding": 188888800, "rate_label": "TIIE +6.00%", "rate": 0.144, "has_covenants": true, "revolving": false, "note": "", "effective_rate": 0.1406, "rate_type": "floating", "business": "LTO"}, {"key": "BEEL Green", "facility": "Green Mobility", "entity": "Beel Infra / Banco Actinver F/4759+F/5166", "contract_date": "2023-10-31", "maturity": "2029-11-05", "currency": "MXN", "line": 174850000, "drawn": 174850000, "outstanding": 120475570, "rate_label": "15.55% Fixed", "rate": 0.1555, "has_covenants": true, "revolving": false, "note": "", "effective_rate": 0.1555, "rate_type": "fixed", "business": "Green"}, {"key": "Covalto", "facility": "LTO Secured", "entity": "Banco Covalto", "contract_date": "2024-12-11", "maturity": "2029-07-05", "currency": "MXN", "line": 120000000, "drawn": 120000000, "outstanding": 120000000, "rate_label": "TIIE +6.50%", "rate": 0.155, "has_covenants": true, "revolving": false, "note": "", "effective_rate": 0.155, "rate_type": "floating_floor", "business": "LTO", "floor_note": "Floor 15.50%"}, {"key": "OIC", "facility": "Morelcamp", "entity": "OIC Morelcamp (USD-denominated)", "contract_date": null, "maturity": "2029-01-31", "currency": "USD", "line": 31743923, "drawn": 31743923, "outstanding": 31743923, "rate_label": "12.00% Fixed", "rate": 0.12, "has_covenants": false, "revolving": false, "note": "USD-linked", "effective_rate": 0.12, "rate_type": "fixed", "business": "HOLDCO"}, {"key": "GMF", "facility": "Revolving LTO", "entity": "GM Financial", "contract_date": null, "maturity": "Annual renewal · Apr", "currency": "MXN", "line": 19500000, "drawn": null, "outstanding": 15438434, "rate_label": "14.72% weighted", "rate": 0.1472, "has_covenants": false, "revolving": true, "note": "Revolving · weighted rate varies per vehicle batch", "effective_rate": 0.1472, "rate_type": "revolving", "business": "LTO"}, {"key": "Toyota", "facility": "Revolving LTO", "entity": "Toyota Financial Services México", "contract_date": null, "maturity": "Annual renewal · Sep", "currency": "MXN", "line": 11000000, "drawn": null, "outstanding": 9608001, "rate_label": "11.82% weighted", "rate": 0.1182, "has_covenants": false, "revolving": true, "note": "Revolving · weighted rate varies per vehicle batch", "effective_rate": 0.1182, "rate_type": "revolving", "business": "LTO"}], "ratio_labels": {"Covalto": {"Apalancamiento": {"en": "Leverage Ratio"}, "Morosidad": {"en": "Default Rate"}, "Cobertura": {"en": "Reserve Coverage"}, "Capitalización": {"en": "Capitalization Ratio"}, "Rentabilidad": {"en": "Net Income (ex. one-offs)"}, "Cob. Intereses": {"en": "Interest Coverage"}, "Aforo": {"en": "Collateral Ratio"}}, "BEEL LTO": {"Deuda/Capital": {"en": "Debt-to-Equity"}, "Deuda/Activos": {"en": "Debt-to-Assets"}, "Capital Contable": {"en": "Shareholders' Equity"}, "Cartera Vencida": {"en": "Default Rate"}, "Aforo": {"en": "Collateral Ratio"}}, "BEEL Green": {"DSCR": {"en": "Debt Service Coverage Ratio"}}, "BEEL VCN": {"Apalancamiento": {"en": "Leverage Ratio"}, "DSCR": {"en": "Debt Service Coverage"}, "RCVB": {"en": "Coverage Ratio — BEEL Loan"}, "RCVMCN": {"en": "Coverage Ratio — MCN Loan"}, "SPI": {"en": "Schedule Performance Index"}, "Hubs B2C": {"en": "B2C Hubs Exposure"}}, "PROMECAP": {"Aforo": {"en": "Coverage Ratio (Aforo)"}, "Morosidad Total": {"en": "Default Rate (Total Portfolio)"}, "Morosidad Pledged": {"en": "Default Rate (Pledged Portfolio)"}, "Apalancamiento": {"en": "Leverage Ratio"}, "Capitalización": {"en": "Capitalization Ratio"}, "Rentabilidad": {"en": "Profit Margin"}, "Utilización Flota": {"en": "Fleet Utilization"}}}, "colors": {"BEEL Green": "#11ABAB", "OIC": "#1F5556", "BEEL LTO": "#0E8A8A", "GMF": "#A6A6A6", "Covalto": "#155859", "PROMECAP": "#2C7172", "BEEL VCN": "#5AC0C0", "Toyota": "#8BB8B8"}};
+const COVENANTS = DATA.covenants;
+const BREAKDOWN = DATA.breakdown;
+const FACILITIES = DATA.facilities;
+const RATIO_LABELS = DATA.ratio_labels;
+const COLORS = DATA.colors;
+const COV_ORDER = ['BEEL VCN','PROMECAP','BEEL LTO','BEEL Green','Covalto'];
+const FX_TC = 17.3505;  // MXN/USD reference rate (PROMECAP Anexo 11, May-2026)
+
+// ============ WAIVERS ============
+// Covenants under formal waiver — if breached during waiver period, status = 'waiver' (yellow)
+// instead of 'no' (red)
+const WAIVERS = {
+  'PROMECAP': {
+    'Rentabilidad':       { expires: '2026-07-01', note: 'Waiver granted by PROMECAP — valid through 1 Jul 2026' },
+    'Morosidad Total':    { expires: '2026-07-01', note: 'Waiver granted by PROMECAP — valid through 1 Jul 2026' },
+    'Morosidad Pledged':  { expires: '2026-07-01', note: 'Waiver granted by PROMECAP — valid through 1 Jul 2026' },
+    'Utilización Flota':  { expires: '2026-07-01', note: 'Waiver granted by PROMECAP — valid through 1 Jul 2026' },
+  },
+  'Covalto': {
+    'Rentabilidad':       { expires: '2026-08-11', note: 'Waiver granted by Banco Covalto — 90 days from 13-May-2026 (through 11 Aug 2026). Signed 11-Jun-2026, retroactive to 13-May-2026.' },
+  }
+};
+
+const REPORTING_DATE = '2026-03-31';  // current reporting date (used to check waiver validity)
+
+// ============ FORMATTERS ============
+const MONTHS_EN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function fmtDt(ym, full=false){
+  if(!ym) return '—';
+  const [y,m] = ym.split('-');
+  return MONTHS_EN[parseInt(m)] + (full ? ' 20' : ' ') + y.slice(2);
+}
+
+function fmtDate(iso){
+  if(!iso) return '—';
+  if(typeof iso !== 'string' || !iso.match(/^\d{4}-\d{2}-\d{2}$/)) return iso;
+  const [y,m,d] = iso.split('-');
+  return `${d} ${MONTHS_EN[parseInt(m)]} ${y}`;
+}
+
+function fmtMoney(n){
+  if(n==null||isNaN(n)) return '—';
+  if(Math.abs(n) >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+  if(Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+  if(Math.abs(n) >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+function fmtRatioValue(v, fmt){
+  if(v==null||v===undefined) return '—';
+  if(fmt==='pct') return (v*100).toFixed(2) + '%';
+  if(fmt==='x')   return v.toFixed(2) + 'x';
+  if(fmt==='mxn'){
+    if(Math.abs(v)>=1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+    if(Math.abs(v)>=1e3) return '$' + (v/1e3).toFixed(0) + 'K';
+    if(Math.abs(v) < 1)  return '$' + v.toFixed(2);
+    return '$' + v.toFixed(0);
+  }
+  return v.toFixed(4);
+}
+
+function fmtNum(v, unit){
+  if(v==null||v===undefined) return '—';
+  if(unit==='MXN'){
+    if(Math.abs(v) >= 1e9) return '$' + (v/1e9).toFixed(2) + 'B';
+    if(Math.abs(v) >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+    if(Math.abs(v) >= 1e3) return '$' + (v/1e3).toFixed(0) + 'K';
+    if(v === 0) return '$0';
+    return '$' + v.toFixed(0);
+  }
+  if(unit==='%' || unit==='pct') return (v*100).toFixed(2) + '%';
+  if(unit==='x') return v.toFixed(2) + 'x';
+  if(unit==='#') return v.toLocaleString('en-US',{maximumFractionDigits:0});
+  return v.toLocaleString('en-US',{maximumFractionDigits:2});
+}
+
+function evalCompliance(value, threshold, direction){
+  if(value==null||value===undefined) return 'na';
+  if(value === 0 && direction === 'greater' && threshold > 0) return 'na';
+  if(direction==='less')    return value <= threshold ? 'ok' : 'no';
+  if(direction==='greater') return value >= threshold ? 'ok' : 'no';
+  return 'na';
+}
+
+// Check if a waiver applies to a given lender/ratio at a given reporting date
+function isWaiverActive(lkey, rname, atDate){
+  const w = WAIVERS[lkey] && WAIVERS[lkey][rname];
+  if(!w) return null;
+  // atDate is YYYY-MM (or YYYY-MM-DD); compare against w.expires (YYYY-MM-DD)
+  const dateStr = atDate.length === 7 ? atDate + '-31' : atDate;
+  return dateStr <= w.expires ? w : null;
+}
+
+// Eval compliance taking waiver into account. Returns: 'ok', 'no', 'na', or 'waiver'
+function evalComplianceWithWaiver(lkey, rname, value, threshold, direction, atDate){
+  const baseStatus = evalCompliance(value, threshold, direction);
+  if(baseStatus !== 'no') return baseStatus;  // OK / NA stay as-is
+  // Breach — check waiver
+  if(atDate && isWaiverActive(lkey, rname, atDate)) return 'waiver';
+  return 'no';
+}
+
+// ============ MINI SPARKLINE (in summary cards / item rows) ============
+function mkMiniSpark(series, threshold, direction, lkey, rname, w=80, h=22){
+  if(!series || series.length<2) return '';
+  const validPts = series.map((s,i)=>({i, v: s.value, d: s.date})).filter(p=>p.v!==null && p.v !== undefined);
+  if(validPts.length<2) return '';
+  const values = validPts.map(p=>p.v);
+  const min = Math.min(...values, threshold);
+  const max = Math.max(...values, threshold);
+  const range = (max-min) || 1;
+  const pad = 2;
+  const step = (w-pad*2)/(series.length-1);
+  const pts = validPts.map(p => {
+    const x = pad + p.i*step;
+    const y = h-pad - ((p.v-min)/range)*(h-pad*2);
+    return [x, y];
+  });
+  const tY = h-pad - ((threshold-min)/range)*(h-pad*2);
+  const last = validPts[validPts.length-1];
+  const status = (lkey && rname) 
+    ? evalComplianceWithWaiver(lkey, rname, last.v, threshold, direction, last.d)
+    : evalCompliance(last.v, threshold, direction);
+  let color;
+  if(status==='ok') color = '#1F5556';
+  else if(status==='no') color = '#B84444';
+  else if(status==='waiver') color = '#B8860B';
+  else color = '#A6A6A6';
+  const ptsStr = pts.map(p=>p.join(',')).join(' ');
+  
+  return `<svg class="spark-mini" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <line x1="${pad}" y1="${tY.toFixed(1)}" x2="${w-pad}" y2="${tY.toFixed(1)}" stroke="#11ABAB" stroke-width="0.7" stroke-dasharray="2,2" opacity="0.5"/>
+    <polyline points="${ptsStr}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="2" fill="${color}"/>
+  </svg>`;
+}
+
+// ============ LARGE CHART (in modal) ============
+function mkLargeChart(series, threshold, direction, condition, format, lkey, rname){
+  if(!series || series.length<2) return '<div style="padding:30px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px">Insufficient data points</div>';
+  
+  const validPts = series.map((s,i)=>({i, v: s.value, d: s.date})).filter(p=>p.v!==null && p.v !== undefined);
+  if(validPts.length<2) return '<div style="padding:30px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px">Insufficient data points</div>';
+  
+  const values = validPts.map(p=>p.v);
+  const valMin = Math.min(...values);
+  const valMax = Math.max(...values);
+  const includesThr = (threshold !== 0 && Math.abs(threshold) < Math.max(Math.abs(valMin), Math.abs(valMax)) * 100);
+  const min = includesThr ? Math.min(valMin, threshold) : valMin;
+  const max = includesThr ? Math.max(valMax, threshold) : valMax;
+  const padding = (max-min) * 0.15 || 0.1;
+  const yMin = min - padding;
+  const yMax = max + padding;
+  const range = yMax - yMin || 1;
+  
+  // Layout
+  const W = 1000, H = 380;
+  const padL = 88, padR = 56, padT = 36, padB = 70;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const step = series.length > 1 ? plotW / (series.length-1) : 0;
+  
+  // Build points
+  const pts = validPts.map(p => {
+    const x = padL + p.i*step;
+    const y = padT + plotH - ((p.v - yMin)/range) * plotH;
+    return {x, y, v: p.v, d: p.date, i: p.i};
+  });
+  
+  const tY = padT + plotH - ((threshold - yMin)/range) * plotH;
+  const lastPt = pts[pts.length-1];
+  const lastStatus = (lkey && rname)
+    ? evalComplianceWithWaiver(lkey, rname, lastPt.v, threshold, direction, lastPt.d)
+    : evalCompliance(lastPt.v, threshold, direction);
+  let lineColor;
+  if(lastStatus==='ok') lineColor = '#1F5556';
+  else if(lastStatus==='no') lineColor = '#B84444';
+  else if(lastStatus==='waiver') lineColor = '#B8860B';
+  else lineColor = '#5A6E6F';
+  
+  // Y-axis ticks
+  let yTicks = '';
+  for(let i=0; i<=5; i++){
+    const yVal = yMin + (range*i/5);
+    const yPos = padT + plotH - (i/5)*plotH;
+    yTicks += `<line x1="${padL}" y1="${yPos.toFixed(1)}" x2="${W-padR}" y2="${yPos.toFixed(1)}" stroke="#DFEAEA" stroke-width="0.7"/>`;
+    yTicks += `<text x="${padL-10}" y="${(yPos+4).toFixed(1)}" font-family="JetBrains Mono" font-size="11.5" fill="#5A6E6F" text-anchor="end" font-weight="500">${fmtRatioValue(yVal, format)}</text>`;
+  }
+  
+  // X-axis labels
+  const stride = series.length > 14 ? 2 : (series.length > 8 ? 1 : 1);
+  let xLabels = '';
+  series.forEach((s, i) => {
+    if(i % stride !== 0 && i !== series.length-1) return;
+    const x = padL + i*step;
+    xLabels += `<text x="${x.toFixed(1)}" y="${(H-padB+22).toFixed(1)}" font-family="JetBrains Mono" font-size="10.5" fill="#5A6E6F" text-anchor="middle" font-weight="500">${fmtDt(s.date)}</text>`;
+  });
+  
+  // Polyline
+  const polylinePts = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  
+  // Threshold line
+  let thresholdEl = '';
+  if(includesThr){
+    thresholdEl = `<line x1="${padL}" y1="${tY.toFixed(1)}" x2="${W-padR}" y2="${tY.toFixed(1)}" stroke="#11ABAB" stroke-width="1.8" stroke-dasharray="6,4"/>
+      <text x="${(W-padR+6).toFixed(1)}" y="${(tY+4).toFixed(1)}" font-family="JetBrains Mono" font-size="10.5" fill="#11ABAB" font-weight="600">${condition}</text>`;
+  }
+  
+  // Data points + labels
+  let pointsAndLabels = '';
+  pts.forEach((p, idx) => {
+    const status = (lkey && rname)
+      ? evalComplianceWithWaiver(lkey, rname, p.v, threshold, direction, p.d)
+      : evalCompliance(p.v, threshold, direction);
+    let ptColor;
+    if(status==='no') ptColor = '#B84444';
+    else if(status==='waiver') ptColor = '#B8860B';
+    else if(status==='na') ptColor = '#A6A6A6';
+    else ptColor = lineColor;
+    pointsAndLabels += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="${ptColor}" stroke="#fff" stroke-width="1.8"/>`;
+    
+    const isLast = (idx === pts.length-1);
+    const above = p.y > (padT + plotH/2);
+    const labelY = above ? p.y - 13 : p.y + 20;
+    const fontSize = isLast ? 13 : 11;
+    const fontWeight = isLast ? '700' : '500';
+    const labelFill = isLast ? ptColor : '#1F5556';
+    
+    const labelText = fmtRatioValue(p.v, format);
+    const textWidth = labelText.length * (fontSize * 0.62);
+    const padBg = isLast ? 5 : 3;
+    pointsAndLabels += `<rect x="${(p.x - textWidth/2 - padBg).toFixed(1)}" y="${(labelY - fontSize + 1).toFixed(1)}" width="${(textWidth + padBg*2).toFixed(1)}" height="${(fontSize + 4).toFixed(1)}" fill="white" fill-opacity="${isLast ? '0.95' : '0.85'}" rx="2"/>`;
+    pointsAndLabels += `<text x="${p.x.toFixed(1)}" y="${labelY.toFixed(1)}" font-family="JetBrains Mono" font-size="${fontSize}" text-anchor="middle" font-weight="${fontWeight}" fill="${labelFill}">${labelText}</text>`;
+  });
+  
+  return `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <rect x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="#FBFDFD" stroke="#DFEAEA" stroke-width="0.5"/>
+    ${yTicks}
+    <polyline points="${polylinePts}" fill="none" stroke="${lineColor}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    ${thresholdEl}
+    ${pointsAndLabels}
+    ${xLabels}
+  </svg>`;
+}
+
+// ============ RENDER FACILITIES ============
+function renderFacilities(){
+  // Group by business — display order
+  const businessOrder = ['LTO', 'VCN', 'Green', 'HOLDCO'];
+  const businessLabels = {
+    'LTO': 'LTO',
+    'VCN': 'VCN',
+    'Green': 'Green',
+    'HOLDCO': 'HOLDCO (USD-linked)',
+  };
+  
+  const groups = {};
+  businessOrder.forEach(b => groups[b] = []);
+  for(const f of FACILITIES){
+    const biz = f.business || 'LTO';
+    if(!groups[biz]) groups[biz] = [];
+    groups[biz].push(f);
+  }
+  
+  // MXN totals (excluding USD-denominated)
+  let mxnLine=0, mxnDrawn=0, mxnOutstanding=0, mxnWRate=0;
+  let mxnDrawnCount = 0;
+  let usdLine=0, usdOutstanding=0;
+  let nMxn = 0, nUsd = 0;
+  
+  for(const f of FACILITIES){
+    if(f.currency === 'USD'){
+      usdLine += f.line;
+      usdOutstanding += f.outstanding;
+      nUsd++;
+    } else {
+      mxnLine += f.line;
+      if(f.drawn !== null) { mxnDrawn += f.drawn; mxnDrawnCount++; }
+      mxnOutstanding += f.outstanding;
+      const rate = f.effective_rate !== undefined ? f.effective_rate : f.rate;
+      mxnWRate += f.outstanding * rate;
+      nMxn++;
+    }
+  }
+  
+  function buildRow(f){
+    const util = f.outstanding / f.line;
+    const utilPct = (util*100).toFixed(0) + '%';
+    const color = COLORS[f.key] || '#A6A6A6';
+    const covBadge = f.has_covenants 
+      ? '<span class="badge-cov">FINANCIAL COVENANTS</span>'
+      : '<span class="badge-nocov">—</span>';
+    
+    const drawnCell = f.revolving 
+      ? '<span style="font-family:var(--mono);font-size:10px;color:var(--gray);letter-spacing:0.6px">REVOLVING</span>'
+      : fmtMoney(f.drawn);
+    
+    const maturityStr = f.maturity && f.maturity.includes('Annual')
+      ? `<span style="color:var(--teal)">${f.maturity}</span>`
+      : fmtDate(f.maturity);
+    
+    // Contractual rate
+    const contractualHtml = `<span class="fac-rate">${f.rate_label}</span>`;
+    
+    // Effective rate (separate column)
+    let effHtml;
+    if(f.rate_type === 'fixed'){
+      effHtml = `<span style="color:var(--gray);font-family:var(--mono);font-size:10.5px">— same (fixed)</span>`;
+    } else if(f.rate_type === 'revolving'){
+      effHtml = `<span style="color:var(--gray);font-family:var(--mono);font-size:10.5px">— ${(f.effective_rate*100).toFixed(2)}% wtd.</span>`;
+    } else {
+      // floating or floating_floor
+      const effPct = (f.effective_rate*100).toFixed(2) + '%';
+      const floorTag = f.floor_note 
+        ? `<span style="font-size:9px;color:var(--warn);font-family:var(--mono);background:var(--warn-bg);padding:1px 5px;border-radius:2px;margin-left:6px;font-weight:600">${f.floor_note}</span>`
+        : '';
+      effHtml = `<span style="color:var(--teal);font-family:var(--mono);font-size:12px;font-weight:600">${effPct}</span>${floorTag}`;
+    }
+    
+    const currencyTag = f.currency === 'USD' 
+      ? '<span style="background:var(--warn-bg);color:var(--warn);font-size:9px;font-family:var(--mono);padding:1px 5px;border-radius:2px;margin-left:6px;font-weight:600">USD</span>'
+      : '';
+    
+    return `<tr>
+      <td>
+        <div class="fac-name">
+          <span class="fac-dot" style="background:${color}"></span>
+          <div>
+            <div class="fac-label">${f.key} ${currencyTag} <span style="color:var(--muted);font-weight:400;font-size:11.5px">· ${f.facility}</span></div>
+            <div class="fac-ent">${f.entity}${f.note ? ` · <span style="color:var(--gray)">${f.note}</span>` : ''}</div>
+          </div>
+        </div>
+      </td>
+      <td style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">${maturityStr}</td>
+      <td class="rt" style="font-weight:600;color:var(--deep)">${fmtMoney(f.outstanding)}</td>
+      <td>
+        <span class="util-bar"><span class="util-fill" style="width:${Math.min(util*100,100).toFixed(0)}%"></span></span>
+        <span class="util-pct">${utilPct}</span>
+      </td>
+      <td class="rt">${drawnCell}</td>
+      <td class="rt">${fmtMoney(f.line)}</td>
+      <td>${contractualHtml}</td>
+      <td>${effHtml}</td>
+      <td style="text-align:center">${covBadge}</td>
+    </tr>`;
+  }
+  
+  function buildBusinessSection(biz, facilities){
+    if(!facilities.length) return '';
+    
+    // Compute group totals
+    let gLine=0, gDrawn=0, gOutstanding=0, gRevolvingCount=0, gNonRevDrawn=0;
+    let gWRate=0;
+    const isUsdGroup = facilities[0].currency === 'USD';
+    facilities.forEach(f => {
+      gLine += f.line;
+      gOutstanding += f.outstanding;
+      if(f.drawn !== null) { gDrawn += f.drawn; gNonRevDrawn += f.drawn; }
+      else { gRevolvingCount++; }
+      const rate = f.effective_rate !== undefined ? f.effective_rate : f.rate;
+      gWRate += f.outstanding * rate;
+    });
+    const gUtil = gOutstanding / gLine;
+    const gAvgRate = gOutstanding > 0 ? (gWRate/gOutstanding*100).toFixed(2) : '—';
+    
+    const slug = biz.replace(/[^a-zA-Z]/g,'');
+    const drawnCellFooter = gRevolvingCount === facilities.length 
+      ? `<span style="color:var(--gray);font-size:10px;letter-spacing:0.5px">REVOLVING</span>`
+      : (gRevolvingCount > 0 
+        ? `<span style="color:var(--muted)">${fmtMoney(gNonRevDrawn)}<span style="font-size:9px;margin-left:4px">(${facilities.length-gRevolvingCount}/${facilities.length})</span></span>`
+        : fmtMoney(gDrawn));
+    
+    const usdSuffix = isUsdGroup ? ' <span style="background:var(--warn-bg);color:var(--warn);font-size:8.5px;font-family:var(--mono);padding:1px 5px;border-radius:2px;margin-left:5px;font-weight:600;letter-spacing:0.5px">USD · NOT IN MXN TOTAL</span>' : '';
+    
+    // Section header (collapsible) — shows summary INCLUDING when collapsed
+    const headerRow = `<tr class="biz-section-header" data-biz="${slug}" onclick="toggleBizSection('${slug}')">
+      <td colspan="9">
+        <div class="biz-hdr-content">
+          <div class="biz-hdr-l">
+            <span class="biz-toggle" id="biz-tog-${slug}">▶</span>
+            <span class="biz-hdr-title">${businessLabels[biz] || biz}</span>
+            <span class="biz-hdr-count">${facilities.length} facilit${facilities.length>1?'ies':'y'}</span>
+            ${usdSuffix}
+          </div>
+          <div class="biz-hdr-r">
+            <span class="biz-stat"><span class="biz-stat-lbl">Outstanding</span><span class="biz-stat-val">${fmtMoney(gOutstanding)}</span></span>
+            <span class="biz-stat"><span class="biz-stat-lbl">Util.</span><span class="biz-stat-val">${(gUtil*100).toFixed(0)}%</span></span>
+            <span class="biz-stat"><span class="biz-stat-lbl">Line</span><span class="biz-stat-val">${fmtMoney(gLine)}</span></span>
+            <span class="biz-stat"><span class="biz-stat-lbl">Wtd. Rate</span><span class="biz-stat-val">${gAvgRate}%</span></span>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+    
+    // Body rows wrapped in collapsible
+    const bodyRows = facilities.map(f => buildRow(f).replace('<tr>', `<tr class="biz-row biz-row-${slug}" style="display:none">`)).join('');
+    
+    return headerRow + bodyRows;
+  }
+  
+  // Build all sections
+  let rows = '';
+  for(const biz of businessOrder){
+    rows += buildBusinessSection(biz, groups[biz]);
+  }
+  
+  const totUtil = (mxnOutstanding/mxnLine*100).toFixed(0);
+  const avgRate = mxnOutstanding > 0 ? (mxnWRate/mxnOutstanding*100).toFixed(2) : '—';
+  
+  document.getElementById('fac-tbl').innerHTML = `
+    <thead>
+      <tr>
+        <th>Facility / Lender</th>
+        <th>Maturity</th>
+        <th class="rt">Outstanding</th>
+        <th>Utilization</th>
+        <th class="rt">Drawn</th>
+        <th class="rt">Line</th>
+        <th>Contractual Rate</th>
+        <th>Effective <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--gray);font-size:9px">May-26</span></th>
+        <th style="text-align:center">Covenants</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">TOTAL MXN — ${nMxn} FACILITIES</td>
+        <td class="rt">${fmtMoney(mxnOutstanding)}</td>
+        <td><span class="util-bar"><span class="util-fill" style="width:${totUtil}%"></span></span>
+            <span class="util-pct" style="color:var(--deep);font-weight:500">${totUtil}%</span></td>
+        <td class="rt"><span style="color:var(--gray);font-size:11px">${fmtMoney(mxnDrawn)}</span></td>
+        <td class="rt">${fmtMoney(mxnLine)}</td>
+        <td><span class="fac-rate" style="color:var(--muted)">—</span></td>
+        <td><span class="fac-rate" style="color:var(--deep);font-weight:600">${avgRate}% wtd.</span></td>
+        <td></td>
+      </tr>
+    </tfoot>
+  `;
+  
+  return {
+    totalLine: mxnLine, 
+    totalDrawn: mxnDrawn, 
+    totalOutstanding: mxnOutstanding, 
+    avgRate, 
+    nFacilities: nMxn,
+    usdLine, usdOutstanding, nUsd
+  };
+}
+
+function toggleBizSection(slug){
+  const tog = document.getElementById('biz-tog-'+slug);
+  if(!tog) return;
+  const isOpen = tog.classList.contains('open');
+  // Toggle state
+  if(isOpen){
+    tog.classList.remove('open');
+    tog.textContent = '▶';
+  } else {
+    tog.classList.add('open');
+    tog.textContent = '▼';
+  }
+  // Toggle rows
+  const rows = document.querySelectorAll('.biz-row-'+slug);
+  rows.forEach(r => {
+    r.style.display = isOpen ? 'none' : 'table-row';
+  });
+}
+
+// ============ COMPUTE LENDER STATS ============
+function computeLenderStats(lkey){
+  const ratios = COVENANTS[lkey];
+  if(!ratios) return {ok:0,no:0,na:0,waiver:0,total:0};
+  let ok=0, no=0, na=0, waiver=0;
+  for(const rname in ratios){
+    const r = ratios[rname];
+    if(!r.series.length){ na++; continue; }
+    const last = r.series[r.series.length-1];
+    const st = evalComplianceWithWaiver(lkey, rname, last.value, r.threshold, r.direction, last.date);
+    if(st==='ok') ok++;
+    else if(st==='no') no++;
+    else if(st==='waiver') waiver++;
+    else na++;
+  }
+  return {ok, no, na, waiver, total: ok+no+na+waiver};
+}
+
+// ============ RENDER KPIs ============
+function renderKPIs(totals){
+  const utilPct = (totals.totalOutstanding/totals.totalLine*100).toFixed(0);
+  const mxnFacilities = FACILITIES.filter(f => f.currency !== 'USD');
+  const nRevolving = mxnFacilities.filter(f=>f.revolving).length;
+  const nFixed = mxnFacilities.filter(f=>!f.revolving && f.rate_type === 'fixed').length;
+  const nFloating = mxnFacilities.filter(f=>!f.revolving && (f.rate_type === 'floating' || f.rate_type === 'floating_floor')).length;
+  
+  // Aggregate covenant stats
+  let totOk=0, totNo=0, totNa=0, totWaiver=0, totPoints=0;
+  for(const lk of COV_ORDER){
+    const ratios = COVENANTS[lk];
+    if(!ratios) continue;
+    for(const rn in ratios){
+      const r = ratios[rn];
+      totPoints += r.series.length;
+      if(!r.series.length){ totNa++; continue; }
+      const last = r.series[r.series.length-1];
+      const st = evalComplianceWithWaiver(lk, rn, last.value, r.threshold, r.direction, last.date);
+      if(st==='ok') totOk++;
+      else if(st==='no') totNo++;
+      else if(st==='waiver') totWaiver++;
+      else totNa++;
+    }
+  }
+  const total = totOk+totNo+totNa+totWaiver;
+  
+  // Compliance summary
+  let complianceVal, complianceSub, complianceCls = '';
+  if(totNo > 0){
+    complianceVal = `${totNo} breach${totNo>1?'es':''}`;
+    complianceSub = `${totOk} OK · ${totWaiver} waived · ${totNa} N/A · ${totNo} breaches`;
+    complianceCls = 'kpi-breach';
+  } else if(totWaiver > 0){
+    complianceVal = `${totWaiver} waived`;
+    complianceSub = `${totOk} OK · ${totWaiver} under waiver · ${totNa} N/A`;
+    complianceCls = 'kpi-waiver';
+  } else {
+    complianceVal = 'OK';
+    complianceSub = `${totOk} OK · ${totNa} N/A`;
+  }
+  
+  const usdInMxn = totals.usdLine * FX_TC;
+  const grandTotalMxn = totals.totalLine + usdInMxn;
+  
+  const items = [
+    {lbl:'Total Facilities (MXN equiv.)', val:fmtMoney(grandTotalMxn), sub:`<span style="color:var(--deep);font-weight:600">${fmtMoney(totals.totalLine)} MXN</span> + <span style="color:var(--warn);font-weight:600">${fmtMoney(usdInMxn)}</span> <span style="color:var(--gray);font-size:9.5px">(USD @ ${FX_TC.toFixed(2)})</span>`, cls:'', subHtml:true},
+    {lbl:'Outstanding Balance', val:fmtMoney(totals.totalOutstanding), sub:`${utilPct}% utilization · MXN only`, cls:''},
+    {lbl:'Weighted Avg. Rate', val:totals.avgRate + '%', sub:`Effective May-26 · ${nFloating} floating · ${nFixed} fixed · ${nRevolving} revolving`, cls:''},
+    {lbl:'Covenants Monitored', val:String(total), sub:`${COV_ORDER.filter(k=>COVENANTS[k]).length} lenders · ${totPoints} data points`, cls:''},
+    {lbl:'Compliance', val: complianceVal, sub: complianceSub, cls: complianceCls},
+  ];
+  
+  document.getElementById('kpi-grid').innerHTML = items.map(i=>`
+    <div class="kpi ${i.cls}">
+      <span class="k-accent"></span>
+      <div class="k-lbl">${i.lbl}</div>
+      <div class="k-val">${i.val}</div>
+      <div class="k-sub">${i.sub}</div>
+    </div>
+  `).join('');
+  
+  return {ok:totOk, no:totNo, na:totNa, waiver:totWaiver, total};
+}
+
+// ============ RENDER LENDER TABS ============
+function renderLenderTabs(){
+  const tabs = [
+    {key:'_summary', label:'Summary', meta:'All lenders'},
+  ];
+  for(const lk of COV_ORDER){
+    if(!COVENANTS[lk]) continue;
+    const stats = computeLenderStats(lk);
+    let dotClass = 'ok';
+    if(stats.no > 0) dotClass = 'no';
+    else if(stats.waiver > 0) dotClass = 'waiver';
+    else if(stats.na > 0 && stats.ok === 0) dotClass = 'na';
+    tabs.push({
+      key: lk,
+      label: lk,
+      meta: `${stats.total} covenants`,
+      dotClass,
+    });
+  }
+  
+  document.getElementById('lender-tabs').innerHTML = tabs.map((t,i) => `
+    <button class="lt-tab ${i===0?'active':''}" data-tab="${t.key}" onclick="switchTab('${t.key}')">
+      ${t.dotClass ? `<span class="lt-status-dot ${t.dotClass}"></span>` : ''}
+      <span class="lt-tab-l">${t.label}</span>
+      <span class="lt-meta">${t.meta}</span>
+    </button>
+  `).join('');
+}
+
+function switchTab(key){
+  document.querySelectorAll('.lt-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.tab === key);
+  });
+  document.querySelectorAll('.lender-view').forEach(v=>{
+    v.classList.toggle('active', v.dataset.view === key);
+  });
+}
+
+// ============ RENDER SUMMARY VIEW ============
+function renderSummaryView(){
+  let html = '<div class="sum-grid">';
+  
+  for(const lkey of COV_ORDER){
+    const ratios = COVENANTS[lkey];
+    if(!ratios) continue;
+    const color = COLORS[lkey] || '#1F5556';
+    const stats = computeLenderStats(lkey);
+    
+    let lastDate = '';
+    for(const rn in ratios){
+      const s = ratios[rn].series;
+      if(s.length && s[s.length-1].date > lastDate) lastDate = s[s.length-1].date;
+    }
+    
+    let rows = '';
+    for(const [rname, rinfo] of Object.entries(ratios)){
+      const labelInfo = (RATIO_LABELS[lkey] && RATIO_LABELS[lkey][rname]) || {en: rname};
+      const last = rinfo.series.length ? rinfo.series[rinfo.series.length-1] : null;
+      const v = last ? last.value : null;
+      const status = last ? evalComplianceWithWaiver(lkey, rname, v, rinfo.threshold, rinfo.direction, last.date) : 'na';
+      const valFmt = fmtRatioValue(v, rinfo.format);
+      const isWaiver = status === 'waiver';
+      
+      rows += `<tr onclick="openCovModal('${lkey}','${rname}')" style="cursor:pointer">
+        <td><span class="status-dot ${status}"></span><span class="sum-row-name">${labelInfo.en}</span>${isWaiver?'<span class="waiver-badge">WAIVED</span>':''}</td>
+        <td class="sum-row-cond">${rinfo.condition}</td>
+        <td style="text-align:center;width:90px">${mkMiniSpark(rinfo.series, rinfo.threshold, rinfo.direction, lkey, rname)}</td>
+        <td class="sum-row-val ${status}">${valFmt}</td>
+      </tr>`;
+    }
+    
+    let statsPills = '';
+    if(stats.ok > 0) statsPills += `<span class="stat-pill ok">${stats.ok} OK</span>`;
+    if(stats.no > 0) statsPills += `<span class="stat-pill no">${stats.no} BREACH</span>`;
+    if(stats.waiver > 0) statsPills += `<span class="stat-pill waiver">${stats.waiver} WAIVED</span>`;
+    if(stats.na > 0) statsPills += `<span class="stat-pill na">${stats.na} N/A</span>`;
+    
+    const slug = lkey.replace(/ /g,'_');
+    html += `<div class="sum-card" id="sum-${slug}">
+      <div class="sum-card-hdr" onclick="toggleSumCard('${slug}')">
+        <div class="sum-card-bar" style="background:${color}"></div>
+        <div>
+          <div class="sum-card-title">${lkey}</div>
+          <div class="sum-card-meta">As of ${fmtDt(lastDate)}</div>
+        </div>
+        <div class="sum-card-stats">${statsPills}</div>
+        <span class="sum-card-toggle">▼</span>
+      </div>
+      <div class="sum-card-body">
+        <table class="sum-tbl"><tbody>${rows}</tbody></table>
+      </div>
+    </div>`;
+  }
+  
+  html += '</div>';
+  return html;
+}
+
+function toggleSumCard(slug){
+  const card = document.getElementById('sum-'+slug);
+  if(card) card.classList.toggle('collapsed');
+}
+
+// ============ RENDER LENDER DETAIL VIEW ============
+function renderLenderView(lkey){
+  const ratios = COVENANTS[lkey];
+  if(!ratios) return '';
+  const color = COLORS[lkey] || '#1F5556';
+  const stats = computeLenderStats(lkey);
+  
+  const lenderSubs = {
+    'Covalto':  'Banco Covalto — Secured LTO · Quarterly',
+    'BEEL LTO': 'Beel Infra / Actinver F/5166 · Quarterly',
+    'BEEL VCN': 'Beel Infra / Actinver — Proyecto Milka · Quarterly · Implementation period',
+    'PROMECAP': 'Ficade / Invex F/5926 · Monthly',
+  };
+  
+  let lastDate = '';
+  for(const rn in ratios){
+    const s = ratios[rn].series;
+    if(s.length && s[s.length-1].date > lastDate) lastDate = s[s.length-1].date;
+  }
+  
+  let statsPills = '';
+  if(stats.ok > 0) statsPills += `<span class="stat-pill ok">${stats.ok} OK</span>`;
+  if(stats.no > 0) statsPills += `<span class="stat-pill no">${stats.no} BREACH</span>`;
+  if(stats.waiver > 0) statsPills += `<span class="stat-pill waiver">${stats.waiver} WAIVED</span>`;
+  if(stats.na > 0) statsPills += `<span class="stat-pill na">${stats.na} N/A</span>`;
+  
+  // Header
+  let html = `<div class="detail-hdr">
+    <div class="detail-hdr-bar" style="background:${color}"></div>
+    <div>
+      <div class="detail-hdr-title">${lkey}</div>
+      <div class="detail-hdr-sub">${lenderSubs[lkey] || ''} · As of ${fmtDt(lastDate)}</div>
+    </div>
+    <div class="detail-hdr-stats">${statsPills}</div>
+  </div>`;
+  
+  // Lender-level waiver banner if any waivers active
+  if(WAIVERS[lkey]){
+    const waivedRatios = Object.keys(WAIVERS[lkey]);
+    const expiry = WAIVERS[lkey][waivedRatios[0]].expires;
+    const expiryFmt = fmtDate(expiry);
+    const enLabels = waivedRatios.map(rn => (RATIO_LABELS[lkey] && RATIO_LABELS[lkey][rn] ? RATIO_LABELS[lkey][rn].en : rn));
+    html += `<div style="background:var(--waiver-bg);border:1px solid var(--waiver-light);border-left:4px solid var(--waiver-light);border-radius:4px;padding:12px 18px;margin-bottom:14px;font-size:12.5px;color:var(--ink);line-height:1.5">
+      <strong style="color:var(--waiver);font-family:var(--mono);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase">Active waiver</strong><br>
+      Lender granted a formal waiver covering <strong>${enLabels.join(', ')}</strong> through <strong>${expiryFmt}</strong>. Breaches in these covenants during the waiver period are flagged in amber, not red.
+    </div>`;
+  }
+  
+  // Covenant items
+  html += '<div class="cov-list">';
+  for(const [rname, rinfo] of Object.entries(ratios)){
+    const labelInfo = (RATIO_LABELS[lkey] && RATIO_LABELS[lkey][rname]) || {en: rname};
+    const bdInfo = (BREAKDOWN[lkey] && BREAKDOWN[lkey][rname]) || {};
+    const formula = bdInfo.formula || rinfo.desc;
+    
+    const last = rinfo.series.length ? rinfo.series[rinfo.series.length-1] : null;
+    const v = last ? last.value : null;
+    const status = last ? evalComplianceWithWaiver(lkey, rname, v, rinfo.threshold, rinfo.direction, last.date) : 'na';
+    const valFmt = fmtRatioValue(v, rinfo.format);
+    const isWaiver = status === 'waiver';
+    const hasWaiverConfig = WAIVERS[lkey] && WAIVERS[lkey][rname];
+    
+    html += `<div class="cov-item ${status}" onclick="openCovModal('${lkey}','${rname}')">
+      <div class="cov-item-row">
+        <div class="cov-item-bar"></div>
+        <div class="cov-item-main">
+          <div class="cov-item-name">${labelInfo.en}${isWaiver?'<span class="waiver-badge">WAIVED</span>':(hasWaiverConfig?'<span class="waiver-badge" style="opacity:0.55">WAIVER COVERED</span>':'')}</div>
+          <div class="cov-item-formula">${formula}</div>
+        </div>
+        <div class="cov-item-current">
+          <div class="cov-item-spark">${mkMiniSpark(rinfo.series, rinfo.threshold, rinfo.direction, lkey, rname, 100, 26)}</div>
+          <span class="cov-item-cond">${rinfo.condition}</span>
+          <span class="cov-item-val ${status}">${valFmt}</span>
+          <span class="cov-item-arrow">→</span>
+        </div>
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+  
+  return html;
+}
+
+function renderAllLenderViews(){
+  let html = '';
+  // Summary view (default active)
+  html += `<div class="lender-view active" data-view="_summary">${renderSummaryView()}</div>`;
+  // One per lender
+  for(const lk of COV_ORDER){
+    if(!COVENANTS[lk]) continue;
+    html += `<div class="lender-view" data-view="${lk}">${renderLenderView(lk)}</div>`;
+  }
+  document.getElementById('lender-views').innerHTML = html;
+}
+
+// ============ MODAL ============
+let _modalOpen = false;
+let _modalContext = null;  // {lkey, rname} for re-render on range change
+let _currentRange = '6m';  // default: last 6 months
+
+const RANGE_OPTIONS = [
+  {key:'3m', label:'3M', months:3},
+  {key:'6m', label:'6M', months:6},
+  {key:'12m',label:'12M',months:12},
+  {key:'all',label:'All',months:null},
+];
+
+function filterSeriesByRange(series, range){
+  if(!series || !series.length) return series;
+  const opt = RANGE_OPTIONS.find(o => o.key === range);
+  if(!opt || opt.months === null) return series;
+  return series.slice(-opt.months);
+}
+
+function setRange(range){
+  _currentRange = range;
+  if(_modalContext){
+    renderModalContent(_modalContext.lkey, _modalContext.rname);
+  }
+}
+
+function openCovModal(lkey, rname){
+  _modalContext = {lkey, rname};
+  _currentRange = '6m';  // reset to default
+  
+  const ratios = COVENANTS[lkey];
+  const rinfo = ratios[rname];
+  if(!rinfo) return;
+  
+  const labelInfo = (RATIO_LABELS[lkey] && RATIO_LABELS[lkey][rname]) || {en: rname};
+  const bdInfo = (BREAKDOWN[lkey] && BREAKDOWN[lkey][rname]) || {};
+  const formula = bdInfo.formula || rinfo.desc;
+  const color = COLORS[lkey] || '#1F5556';
+  
+  // Modal header (static — doesn't change with range)
+  document.getElementById('modal-bar').style.background = color;
+  document.getElementById('modal-eyebrow').textContent = lkey;
+  document.getElementById('modal-title').textContent = labelInfo.en;
+  document.getElementById('modal-formula').textContent = formula;
+  document.getElementById('modal-cond').textContent = rinfo.condition;
+  
+  // Waiver badge
+  const waiverConfig = WAIVERS[lkey] && WAIVERS[lkey][rname];
+  const last = rinfo.series.length ? rinfo.series[rinfo.series.length-1] : null;
+  const currentStatus = last ? evalComplianceWithWaiver(lkey, rname, last.value, rinfo.threshold, rinfo.direction, last.date) : 'na';
+  const badgeEl = document.getElementById('modal-title-badge');
+  if(currentStatus === 'waiver'){
+    badgeEl.innerHTML = '<span class="waiver-badge">WAIVED</span>';
+  } else if(waiverConfig){
+    badgeEl.innerHTML = '<span class="waiver-badge" style="opacity:0.5">WAIVER COVERED</span>';
+  } else {
+    badgeEl.innerHTML = '';
+  }
+  
+  renderModalContent(lkey, rname);
+  
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  _modalOpen = true;
+}
+
+function renderModalContent(lkey, rname){
+  const ratios = COVENANTS[lkey];
+  const rinfo = ratios[rname];
+  if(!rinfo) return;
+  
+  const labelInfo = (RATIO_LABELS[lkey] && RATIO_LABELS[lkey][rname]) || {en: rname};
+  const bdInfo = (BREAKDOWN[lkey] && BREAKDOWN[lkey][rname]) || {};
+  
+  // Filter series by range
+  const filteredSeries = filterSeriesByRange(rinfo.series, _currentRange);
+  
+  // Body: chart + breakdown
+  const last = filteredSeries.length ? filteredSeries[filteredSeries.length-1] : null;
+  const status = last ? evalComplianceWithWaiver(lkey, rname, last.value, rinfo.threshold, rinfo.direction, last.date) : 'na';
+  const valFmt = last ? fmtRatioValue(last.value, rinfo.format) : '—';
+  const waiverConfig = WAIVERS[lkey] && WAIVERS[lkey][rname];
+  
+  // Chart summary stats (filtered)
+  const validVals = filteredSeries.map(s=>s.value).filter(v=>v!==null && v!==undefined);
+  const minVal = validVals.length ? Math.min(...validVals) : null;
+  const maxVal = validVals.length ? Math.max(...validVals) : null;
+  const breachCount = filteredSeries.filter(s => evalCompliance(s.value, rinfo.threshold, rinfo.direction) === 'no').length;
+  const waivedBreachCount = filteredSeries.filter(s => 
+    evalComplianceWithWaiver(lkey, rname, s.value, rinfo.threshold, rinfo.direction, s.date) === 'waiver'
+  ).length;
+  
+  let bodyHtml = '';
+  
+  // Waiver banner at top
+  if(waiverConfig){
+    bodyHtml += `<div class="modal-note waiver">
+      <strong style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--waiver)">Waiver active</strong> · ${waiverConfig.note}. Breaches during this period are flagged as <strong style="color:var(--waiver)">WAIVED</strong> rather than red.
+    </div>`;
+  }
+  
+  bodyHtml += `<div class="chart-summary">
+    <div class="chart-stat">
+      <div class="chart-stat-lbl">Latest</div>
+      <div class="chart-stat-val ${status}">${valFmt}</div>
+    </div>
+    <div class="chart-stat">
+      <div class="chart-stat-lbl">Min · Max</div>
+      <div class="chart-stat-val">${minVal!==null?fmtRatioValue(minVal, rinfo.format):'—'} · ${maxVal!==null?fmtRatioValue(maxVal, rinfo.format):'—'}</div>
+    </div>
+    <div class="chart-stat">
+      <div class="chart-stat-lbl">Periods</div>
+      <div class="chart-stat-val">${filteredSeries.length}</div>
+    </div>
+    <div class="chart-stat">
+      <div class="chart-stat-lbl">Breaches</div>
+      <div class="chart-stat-val ${breachCount-waivedBreachCount>0?'no':(waivedBreachCount>0?'waiver':'')}">${breachCount}${waivedBreachCount>0?` (${waivedBreachCount} waived)`:''}</div>
+    </div>
+  </div>`;
+  
+  // Range toggle + chart
+  const totalAvail = rinfo.series.length;
+  let rangeButtons = RANGE_OPTIONS.map(opt => {
+    const disabled = (opt.months !== null && totalAvail <= opt.months);
+    const active = (opt.key === _currentRange);
+    return `<button class="range-btn ${active?'active':''}" ${disabled?'disabled style="opacity:0.4;cursor:not-allowed"':`onclick="setRange('${opt.key}')"`}>${opt.label}</button>`;
+  }).join('');
+  
+  bodyHtml += `<div class="chart-wrap">
+    <div class="chart-controls">
+      <div class="chart-controls-l">Trend · ${filteredSeries.length} of ${totalAvail} periods</div>
+      <div class="range-toggle">${rangeButtons}</div>
+    </div>
+    ${mkLargeChart(filteredSeries, rinfo.threshold, rinfo.direction, rinfo.condition, rinfo.format, lkey, rname)}
+  </div>`;
+  
+  if(bdInfo.note){
+    bodyHtml += `<div class="modal-note info">${bdInfo.note}</div>`;
+  }
+  
+  bodyHtml += renderModalBreakdown(lkey, rname, rinfo, bdInfo, labelInfo, _currentRange);
+  
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+}
+
+function renderModalBreakdown(lkey, rname, rinfo, bdInfo, labelInfo, currentRange){
+  // Filter rinfo series and breakdown components to range
+  const filteredCovSeries = filterSeriesByRange(rinfo.series, currentRange || 'all');
+  
+  // Get the set of dates from the filtered covenant series — this is our X-axis
+  const allowedDates = new Set(filteredCovSeries.map(pt => pt.date));
+  
+  // For each breakdown source, only show points whose date is in allowedDates
+  const filterPoints = (pts) => pts.filter(pt => allowedDates.has(pt.date));
+  
+  // Gather all dates (only those in allowedDates)
+  const allDates = new Set();
+  filteredCovSeries.forEach(pt => allDates.add(pt.date));
+  
+  if(bdInfo.numerator && bdInfo.numerator.series){
+    filterPoints(bdInfo.numerator.series).forEach(pt => allDates.add(pt.date));
+  }
+  if(bdInfo.denominator && bdInfo.denominator.series){
+    filterPoints(bdInfo.denominator.series).forEach(pt => allDates.add(pt.date));
+  }
+  ['numerator_components','denominator_components','components'].forEach(key => {
+    if(bdInfo[key]){
+      bdInfo[key].forEach(c => {
+        if(c.series) filterPoints(c.series).forEach(pt => allDates.add(pt.date));
+      });
+    }
+  });
+  
+  const sortedDates = [...allDates].sort();
+  if(sortedDates.length === 0){
+    return '<div style="padding:20px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px">No breakdown data available — value reported directly by lender.</div>';
+  }
+  
+  const datesHead = sortedDates.map(d => `<th>${fmtDt(d)}</th>`).join('');
+  const formula = bdInfo.formula || rinfo.desc;
+  let html = '';
+  
+  // === Numerator (single) ===
+  if(bdInfo.numerator && bdInfo.numerator.series){
+    const map = {};
+    bdInfo.numerator.series.forEach(pt => {
+      if(allowedDates.has(pt.date)) map[pt.date] = pt.value;
+    });
+    let row = `<tr><td><span class="sign">+</span>${bdInfo.numerator.label}</td>`;
+    sortedDates.forEach(d => {
+      const v = map[d];
+      row += `<td>${v===undefined?'—':fmtNum(v, bdInfo.numerator.unit)}</td>`;
+    });
+    row += '</tr>';
+    
+    html += `<div class="bk-block">
+      <div class="bk-block-ttl">Numerator</div>
+      <div class="bk-tbl-wrap"><table class="bk-tbl">
+        <thead><tr><th>Component</th>${datesHead}</tr></thead>
+        <tbody>${row}</tbody>
+      </table></div>
+    </div>`;
+  }
+  
+  // === Denominator (single) ===
+  if(bdInfo.denominator && bdInfo.denominator.series){
+    const map = {};
+    bdInfo.denominator.series.forEach(pt => {
+      if(allowedDates.has(pt.date)) map[pt.date] = pt.value;
+    });
+    let row = `<tr><td><span class="sign">÷</span>${bdInfo.denominator.label}</td>`;
+    sortedDates.forEach(d => {
+      const v = map[d];
+      row += `<td>${v===undefined?'—':fmtNum(v, bdInfo.denominator.unit)}</td>`;
+    });
+    row += '</tr>';
+    
+    html += `<div class="bk-block">
+      <div class="bk-block-ttl">Denominator</div>
+      <div class="bk-tbl-wrap"><table class="bk-tbl">
+        <thead><tr><th>Component</th>${datesHead}</tr></thead>
+        <tbody>${row}</tbody>
+      </table></div>
+    </div>`;
+  }
+  
+  // === Numerator (multi components) ===
+  if(bdInfo.numerator_components){
+    let rows = '';
+    bdInfo.numerator_components.forEach(c => {
+      const map = {};
+      c.series.forEach(pt => { if(allowedDates.has(pt.date)) map[pt.date] = pt.value; });
+      const signCls = c.sign === '−' ? 'neg' : '';
+      rows += `<tr><td><span class="sign ${signCls}">${c.sign}</span>${c.label}</td>`;
+      sortedDates.forEach(d => {
+        const v = map[d];
+        rows += `<td>${v===undefined||v===null?'—':fmtNum(v, c.unit)}</td>`;
+      });
+      rows += '</tr>';
+    });
+    let sub = '<tr class="subtotal"><td>Subtotal</td>';
+    sortedDates.forEach(d => {
+      let s=0, any=false;
+      bdInfo.numerator_components.forEach(c => {
+        const pt = c.series.find(p => p.date === d);
+        if(pt && pt.value !== null){
+          s += (c.sign === '−' ? -pt.value : pt.value);
+          any = true;
+        }
+      });
+      const unit = bdInfo.numerator_components[0].unit;
+      sub += `<td>${any ? fmtNum(s, unit) : '—'}</td>`;
+    });
+    sub += '</tr>';
+    
+    html += `<div class="bk-block">
+      <div class="bk-block-ttl">Numerator components</div>
+      <div class="bk-tbl-wrap"><table class="bk-tbl">
+        <thead><tr><th>Component</th>${datesHead}</tr></thead>
+        <tbody>${rows}${sub}</tbody>
+      </table></div>
+    </div>`;
+  }
+  
+  // === Denominator (multi) ===
+  if(bdInfo.denominator_components){
+    let rows = '';
+    bdInfo.denominator_components.forEach(c => {
+      const map = {};
+      c.series.forEach(pt => { if(allowedDates.has(pt.date)) map[pt.date] = pt.value; });
+      const signCls = c.sign === '−' ? 'neg' : '';
+      rows += `<tr><td><span class="sign ${signCls}">${c.sign}</span>${c.label}</td>`;
+      sortedDates.forEach(d => {
+        const v = map[d];
+        rows += `<td>${v===undefined||v===null?'—':fmtNum(v, c.unit)}</td>`;
+      });
+      rows += '</tr>';
+    });
+    let sub = '<tr class="subtotal"><td>Subtotal</td>';
+    sortedDates.forEach(d => {
+      let s=0, any=false;
+      bdInfo.denominator_components.forEach(c => {
+        const pt = c.series.find(p => p.date === d);
+        if(pt && pt.value !== null){
+          s += (c.sign === '−' ? -pt.value : pt.value);
+          any = true;
+        }
+      });
+      const unit = bdInfo.denominator_components[0].unit;
+      sub += `<td>${any ? fmtNum(s, unit) : '—'}</td>`;
+    });
+    sub += '</tr>';
+    
+    html += `<div class="bk-block">
+      <div class="bk-block-ttl">Denominator components</div>
+      <div class="bk-tbl-wrap"><table class="bk-tbl">
+        <thead><tr><th>Component</th>${datesHead}</tr></thead>
+        <tbody>${rows}${sub}</tbody>
+      </table></div>
+    </div>`;
+  }
+  
+  // === Mixed components ===
+  if(bdInfo.components){
+    let rows = '';
+    bdInfo.components.forEach(c => {
+      const map = {};
+      c.series.forEach(pt => { if(allowedDates.has(pt.date)) map[pt.date] = pt.value; });
+      const signCls = c.sign.includes('-') ? 'neg' : '';
+      rows += `<tr><td><span class="sign ${signCls}">${c.sign}</span>${c.label}</td>`;
+      sortedDates.forEach(d => {
+        const v = map[d];
+        rows += `<td>${v===undefined||v===null?'—':fmtNum(v, c.unit)}</td>`;
+      });
+      rows += '</tr>';
+    });
+    
+    html += `<div class="bk-block">
+      <div class="bk-block-ttl">Formula components</div>
+      <div class="bk-tbl-wrap"><table class="bk-tbl">
+        <thead><tr><th>Component</th>${datesHead}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  }
+  
+  // === Result row ===
+  const covMap = {};
+  filteredCovSeries.forEach(pt => covMap[pt.date] = pt.value);
+  const lastV = filteredCovSeries.length ? filteredCovSeries[filteredCovSeries.length-1].value : null;
+  const lastDate = filteredCovSeries.length ? filteredCovSeries[filteredCovSeries.length-1].date : null;
+  const lastStatus = evalComplianceWithWaiver(lkey, rname, lastV, rinfo.threshold, rinfo.direction, lastDate);
+  
+  const resultClass = lastStatus === 'no' ? 'no' : (lastStatus === 'waiver' ? 'waiver' : '');
+  let resultRow = `<tr class="result ${resultClass}"><td>${labelInfo.en}</td>`;
+  sortedDates.forEach(d => {
+    const v = covMap[d];
+    resultRow += `<td>${v===undefined?'—':fmtRatioValue(v, rinfo.format)}</td>`;
+  });
+  resultRow += '</tr>';
+  
+  let thresholdRow = `<tr><td style="color:var(--muted)">Threshold</td>`;
+  sortedDates.forEach(() => {
+    thresholdRow += `<td style="color:var(--teal);font-weight:600">${rinfo.condition}</td>`;
+  });
+  thresholdRow += '</tr>';
+  
+  html += `<div class="bk-block">
+    <div class="bk-block-ttl">Result</div>
+    <div class="bk-tbl-wrap"><table class="bk-tbl">
+      <thead><tr><th>Calculation</th>${datesHead}</tr></thead>
+      <tbody>${thresholdRow}${resultRow}</tbody>
+    </table></div>
+  </div>`;
+  
+  return html;
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  _modalOpen = false;
+  _modalContext = null;
+}
+
+function closeModalIfOverlay(e){
+  if(e.target.id === 'modal-overlay') closeModal();
+}
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && _modalOpen) closeModal();
+});
+
+// ============ SECTION COLLAPSE ============
+function toggleSec(id){
+  const body = document.getElementById('body-'+id);
+  const tog = document.getElementById('tog-'+id);
+  if(!body || !tog) return;
+  body.classList.toggle('collapsed');
+  tog.classList.toggle('collapsed');
+}
+
+// ============ INIT ============
+const totals = renderFacilities();
+renderKPIs(totals);
+renderLenderTabs();
+renderAllLenderViews();
+
+</script>
+
+</body>
+</html>
